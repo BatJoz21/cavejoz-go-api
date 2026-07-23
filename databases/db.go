@@ -16,7 +16,7 @@ func InitDB() {
 
 	dsn := getDataSourceName()
 
-	DB, err := sql.Open("mysql", dsn)
+	DB, err = sql.Open("mysql", dsn)
 	if err != nil {
 		panic("Failed to connect to database: " + err.Error())
 	}
@@ -31,6 +31,7 @@ func InitDB() {
 	}
 
 	createTables()
+	createIndexOnTable()
 }
 
 func getDataSourceName() string {
