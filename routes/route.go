@@ -15,4 +15,9 @@ func RegisteredRoutes(server *gin.Engine) {
 	authGroup.Use(middlewares.Authenticate)
 	authGroup.GET("/profile", getUserProfile)
 	authGroup.PUT("/profile", updateUserProfile)
+
+	authGroup.POST("/friends", addFriend)
+	authGroup.PUT("/friends/pending/:id", acceptFriendRequest)
+	authGroup.GET("/friends/pending", getPendingFriendList)
+	authGroup.GET("/friends", getFriendsList)
 }
