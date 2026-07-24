@@ -36,7 +36,7 @@ func registerNewUser(context *gin.Context) {
 		Email:        context.PostForm("email"),
 		PasswordHash: hashedPassword,
 		FullName:     context.PostForm("full_name"),
-		Bio:          "",
+		Bio:          nil,
 		Role:         "user",
 		AvatarUrl:    avatar,
 	}
@@ -86,7 +86,10 @@ func login(context *gin.Context) {
 		return
 	}
 	expire := time.Now().Add(time.Hour * 24 * 7)
-	deviceName := "default"
+	deviceName := dto.DeviceName
+	if deviceName == "" {
+		deviceName = "Unknown device"
+	}
 	refreshTokenObj := models.RefreshToken{
 		UserID:     userData.ID,
 		DeviceName: &deviceName,

@@ -8,7 +8,7 @@ type User struct {
 	Email        string  `json:"email"`
 	PasswordHash string  `json:"password_hash"`
 	FullName     string  `json:"full_name"`
-	Bio          string  `json:"bio"`
+	Bio          *string `json:"bio"`
 	Role         string  `json:"role"`
 	AvatarUrl    *string `json:"avatar_url"`
 }
@@ -29,6 +29,42 @@ func (u *User) Save() error {
 	}
 
 	u.ID, err = result.LastInsertId()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetUserProfileData(uID int64) (*User, error) {
+	query := `SELECT
+		username,
+		email,
+		full_name,
+		bio,
+		avatar_url
+	FROM users WHERE id = ?`
+	row := databases.DB.QueryRow(query, uID)
+
+	var u User
+	err := row.Scan(&u.Username, &u.Email, &u.FullName, &u.Bio, &u.AvatarUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	u.ID = uID
+	return &u, nil
+}
+
+func (u *User) Update() error {
+	query := `UPDATE users SET
+		username = ?,
+		full_name = ?,
+		bio = ?,
+		avatar_url = ?
+	WHERE id = ?`
+	_, err := databases.DB.Exec(query, u.Username, u.FullName, u.Bio, u.AvatarUrl, u.ID)
+
 	if err != nil {
 		return err
 	}

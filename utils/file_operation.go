@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -40,7 +41,7 @@ func SaveAvatar(file *multipart.FileHeader, username string, context *gin.Contex
 	os.MkdirAll(UploadRoots+AvatarDir, os.ModePerm)
 
 	// Create image name and filepath
-	filename := fmt.Sprintf("avatar_%s%s", username, extension)
+	filename := fmt.Sprintf("%d_%s%s", time.Now().UnixNano(), username, extension)
 	path := GetAvatarPath(&filename)
 
 	// Upload the image
@@ -51,6 +52,18 @@ func SaveAvatar(file *multipart.FileHeader, username string, context *gin.Contex
 
 	// Return the image's path
 	return &path, nil
+}
+
+func RemoveImage(filepath *string) error {
+	_, err := os.Stat(*filepath)
+	if err == nil {
+		err = os.Remove(*filepath)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func GetAvatarPath(filename *string) string {
