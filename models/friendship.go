@@ -99,6 +99,53 @@ func GetUserFriends(uID int64) (*[]FriendDTO, error) {
 	return &friends, nil
 }
 
+func GetFriendProfile(uID, frienUID int64) (*FriendProfileDTO, error) {
+	query := `SELECT
+		f.id,
+		u.id,
+		u.username,
+		u.full_name,
+		u.bio,
+		u.avatar_url
+	FROM friendships f
+	JOIN users u ON u.id = CASE
+		WHEN f.requester_id = ? THEN f.addressee_id
+		ELSE f.requester_id
+	END
+	WHERE f.status = 'accepted' AND (f.requester_id = ? OR f.addressee_id = ?) AND u.id = ?`
+	row := databases.DB.QueryRow(query, uID, uID, uID, frienUID)
+
+	var profile FriendProfileDTO
+	err := row.Scan(&profile.FriendshipID, &profile.FriendUID, &profile.Username,
+		&profile.FullName, &profile.Bio, &profile.AvatarUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	return &profile, nil
+}
+
+func IsFriendshipDataExists(uID, targetUID int64) (bool, int64) {
+	query := `SELECT f.id
+	FROM friendships f
+	JOIN users u ON u.id = CASE
+		WHEN f.requester_id = ? THEN f.addressee_id
+		ELSE f.requester_id
+	END
+	WHERE
+		(f.requester_id = ? AND f.addressee_id = ?) OR (f.requester_id = ? AND f.addressee_id = ?)
+	`
+	row := databases.DB.QueryRow(query, uID, uID, targetUID, targetUID, uID)
+
+	var profile FriendProfileDTO
+	err := row.Scan(&profile.FriendshipID)
+	if err == nil {
+		return true, profile.FriendshipID
+	}
+
+	return false, 0
+}
+
 func UpdateFriendshipStatus(status string, friendshipID, AddresseeID int64) error {
 	query := `UPDATE friendships SET status = ? WHERE id = ? AND addressee_id = ?`
 	stmt, err := databases.DB.Prepare(query)
@@ -113,4 +160,16 @@ func UpdateFriendshipStatus(status string, friendshipID, AddresseeID int64) erro
 	}
 
 	return nil
+}
+
+func DeleteFriendship(friendshipID int64) error {
+	query := `DELETE FROM friendships WHERE id = ?`
+	stmt, err := databases.DB.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(friendshipID)
+	return err
 }

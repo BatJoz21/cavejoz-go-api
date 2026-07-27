@@ -17,7 +17,10 @@ func RegisteredRoutes(server *gin.Engine) {
 	authGroup.PUT("/profile", updateUserProfile)
 
 	authGroup.POST("/friends", addFriend)
-	authGroup.PUT("/friends/pending/:id", acceptFriendRequest)
 	authGroup.GET("/friends/pending", getPendingFriendList)
+	authGroup.PUT("/friends/pending/:frId", acceptFriendRequest)
 	authGroup.GET("/friends", getFriendsList)
+	authGroup.GET("/friends/profile/:frUID", getFriendProfile)
+	authGroup.DELETE("/friends/delete/:frId", deleteOrRejectFriendship)
+	authGroup.POST("/block", blockAUser)
 }
