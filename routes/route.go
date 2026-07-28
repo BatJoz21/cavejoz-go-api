@@ -23,4 +23,9 @@ func RegisteredRoutes(server *gin.Engine) {
 	authGroup.GET("/friends/profile/:frUID", getFriendProfile)
 	authGroup.DELETE("/friends/delete/:frId", deleteOrRejectFriendship)
 	authGroup.POST("/block", blockAUser)
+
+	authGroup.POST("/posts", createPost)
+	authGroup.GET("/posts/:postID", viewAPost)
+	authGroup.PUT("/posts/:postID", editAPost)
+	authGroup.DELETE("/posts/:postID", deleteAPost)
 }

@@ -133,8 +133,7 @@ func IsFriendshipDataExists(uID, targetUID int64) (bool, int64) {
 		ELSE f.requester_id
 	END
 	WHERE
-		(f.requester_id = ? AND f.addressee_id = ?) OR (f.requester_id = ? AND f.addressee_id = ?)
-	`
+		(f.requester_id = ? AND f.addressee_id = ?) OR (f.requester_id = ? AND f.addressee_id = ?)`
 	row := databases.DB.QueryRow(query, uID, uID, targetUID, targetUID, uID)
 
 	var profile FriendProfileDTO
@@ -144,6 +143,27 @@ func IsFriendshipDataExists(uID, targetUID int64) (bool, int64) {
 	}
 
 	return false, 0
+}
+
+func IsFriend(uID, targetUID int64) bool {
+	query := `SELECT f.id
+	FROM friendships f
+	JOIN users u ON u.id = CASE
+		WHEN f.requester_id = ? THEN f.addressee_id
+		ELSE f.requester_id
+	END
+	WHERE
+		status = 'accepted' AND
+		(f.requester_id = ? AND f.addressee_id = ?) OR (f.requester_id = ? AND f.addressee_id = ?)`
+	row := databases.DB.QueryRow(query, uID, uID, targetUID, targetUID, uID)
+
+	var profile FriendProfileDTO
+	err := row.Scan(&profile.FriendshipID)
+	if err == nil {
+		return true
+	}
+
+	return false
 }
 
 func UpdateFriendshipStatus(status string, friendshipID, AddresseeID int64) error {

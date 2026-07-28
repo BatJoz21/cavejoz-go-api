@@ -14,9 +14,10 @@ import (
 )
 
 const (
-	MaxImageSize = 20 * 1024 * 1024
-	UploadRoots  = "uploads/"
-	AvatarDir    = "image/avatar/"
+	MaxImageSize    = 20 * 1024 * 1024
+	UploadRoots     = "uploads/"
+	AvatarDir       = "image/avatar/"
+	ImageContentDir = "content/image/"
 )
 
 var imageExtension = map[string]bool{
@@ -54,9 +55,35 @@ func SaveAvatar(file *multipart.FileHeader, username string, context *gin.Contex
 	return &path, nil
 }
 
+func SavePostContent(file *multipart.FileHeader, uID int64, context *gin.Context) (*string, error) {
+	// Verify uploaded image
+	extension, err := verifyUploadedImage(file)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create directory if not exists
+	os.MkdirAll(UploadRoots+ImageContentDir, os.ModePerm)
+
+	// Create image name and filepath
+	filename := fmt.Sprintf("%d_%d_post%s", time.Now().UnixNano(), uID, extension)
+	path := GetImageContentPath(&filename)
+
+	// Upload the image
+	err = context.SaveUploadedFile(file, path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the image's path
+	return &path, nil
+}
+
 func RemoveImage(filepath *string) error {
+	// Find the file
 	_, err := os.Stat(*filepath)
 	if err == nil {
+		// Remove the file
 		err = os.Remove(*filepath)
 		if err != nil {
 			return err
@@ -68,6 +95,10 @@ func RemoveImage(filepath *string) error {
 
 func GetAvatarPath(filename *string) string {
 	return filepath.Join(UploadRoots, AvatarDir, *filename)
+}
+
+func GetImageContentPath(filename *string) string {
+	return filepath.Join(UploadRoots, ImageContentDir, *filename)
 }
 
 func verifyUploadedImage(file *multipart.FileHeader) (string, error) {
