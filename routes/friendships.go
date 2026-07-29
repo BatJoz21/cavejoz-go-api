@@ -130,24 +130,6 @@ func getFriendsList(context *gin.Context) {
 	context.JSON(http.StatusOK, friends)
 }
 
-func getFriendProfile(context *gin.Context) {
-	// Get friend's user ID
-	id, err := strconv.ParseInt(context.Param("frUID"), 10, 64)
-	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-		return
-	}
-
-	// Get the profile data
-	friendProfile, err := models.GetFriendProfile(context.GetInt64("uID"), id)
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
-	}
-
-	context.JSON(http.StatusOK, friendProfile)
-}
-
 func deleteOrRejectFriendship(context *gin.Context) {
 	// Get friendship data ID
 	id, err := strconv.ParseInt(context.Param("frId"), 10, 64)

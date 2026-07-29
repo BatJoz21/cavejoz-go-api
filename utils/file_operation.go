@@ -16,7 +16,7 @@ import (
 const (
 	MaxImageSize    = 20 * 1024 * 1024
 	UploadRoots     = "uploads/"
-	AvatarDir       = "image/avatar/"
+	AvatarDir       = "avatar/"
 	ImageContentDir = "content/image/"
 )
 

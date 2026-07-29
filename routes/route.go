@@ -13,16 +13,18 @@ func RegisteredRoutes(server *gin.Engine) {
 
 	authGroup := server.Group("")
 	authGroup.Use(middlewares.Authenticate)
-	authGroup.GET("/profile", getUserProfile)
+	authGroup.GET("/profile", getMyUserProfile)
 	authGroup.PUT("/profile", updateUserProfile)
+	authGroup.GET("/profile/:username", getUserProfile)
+	authGroup.GET("/avatar/:uID", getUserAvatar)
 
 	authGroup.POST("/friends", addFriend)
 	authGroup.GET("/friends/pending", getPendingFriendList)
 	authGroup.PUT("/friends/pending/:frId", acceptFriendRequest)
 	authGroup.GET("/friends", getFriendsList)
-	authGroup.GET("/friends/profile/:frUID", getFriendProfile)
 	authGroup.DELETE("/friends/delete/:frId", deleteOrRejectFriendship)
 	authGroup.POST("/block", blockAUser)
+	authGroup.GET("/friends/posts/:uID", getAllPostsOfAUser)
 
 	authGroup.POST("/posts", createPost)
 	authGroup.GET("/posts/:postID", viewAPost)

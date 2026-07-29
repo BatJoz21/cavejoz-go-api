@@ -40,6 +40,30 @@ func createPost(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"message": "Post uploaded"})
 }
 
+func getAllPostsOfAUser(context *gin.Context) {
+	// Get user ID
+	id, err := strconv.ParseInt(context.Param("uID"), 10, 64)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Check friendship status
+	visibility := ""
+	if !models.IsFriend(context.GetInt64("uID"), id) {
+		visibility = "public"
+	}
+
+	// Get posts
+	posts, err := models.GetAllPostsofAUser(id, visibility)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	context.JSON(http.StatusOK, posts)
+}
+
 func viewAPost(context *gin.Context) {
 	// Get post ID
 	id, err := strconv.ParseInt(context.Param("postID"), 10, 64)
@@ -128,6 +152,20 @@ func deleteAPost(context *gin.Context) {
 	id, err := strconv.ParseInt(context.Param("postID"), 10, 64)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Get the post data
+	post, err := models.GetPostForOperation(id, context.GetInt64("uID"))
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Delete post's content
+	err = utils.RemoveImage(&post.ContentUrl)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
 
