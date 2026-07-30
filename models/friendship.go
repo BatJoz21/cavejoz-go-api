@@ -37,7 +37,7 @@ func (f *Friendship) SaveAddFriendData() error {
 }
 
 func GetPendingFriends(uID int64) (*[]FriendDTO, error) {
-	query := `SELECT f.id, u.id, u.username, u.avatar_url
+	query := `SELECT f.id, u.id, u.username, u.full_name, u.avatar_url
 	FROM friendships f
 	JOIN users u ON u.id = f.requester_id
 	WHERE f.status = 'pending' AND f.addressee_id = ?`
@@ -51,7 +51,7 @@ func GetPendingFriends(uID int64) (*[]FriendDTO, error) {
 	for rows.Next() {
 		var friend FriendDTO
 		err = rows.Scan(&friend.FriendshipID, &friend.FriendUID,
-			&friend.Username, &friend.AvatarUrl)
+			&friend.Username, &friend.FullName, &friend.AvatarUrl)
 		if err != nil {
 			return nil, err
 		}
@@ -66,15 +66,15 @@ func GetPendingFriends(uID int64) (*[]FriendDTO, error) {
 	return &friends, nil
 }
 
-func GetUserFriends(uID int64) (*[]FriendDTO, error) {
-	query := `SELECT f.id, u.id, u.username, u.avatar_url
+func GetFriendshipList(uID int64, status string) (*[]FriendDTO, error) {
+	query := `SELECT f.id, u.id, u.username, u.full_name, u.avatar_url
 	FROM friendships f
 	JOIN users u ON u.id = CASE
 		WHEN f.requester_id = ? THEN f.addressee_id
 		ELSE f.requester_id
 	END
-	WHERE f.status = 'accepted' AND (f.requester_id = ? OR f.addressee_id = ?)`
-	rows, err := databases.DB.Query(query, uID, uID, uID)
+	WHERE f.status = ? AND (f.requester_id = ? OR f.addressee_id = ?)`
+	rows, err := databases.DB.Query(query, uID, status, uID, uID)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func GetUserFriends(uID int64) (*[]FriendDTO, error) {
 	for rows.Next() {
 		var friend FriendDTO
 		err = rows.Scan(&friend.FriendshipID, &friend.FriendUID,
-			&friend.Username, &friend.AvatarUrl)
+			&friend.Username, &friend.FullName, &friend.AvatarUrl)
 		if err != nil {
 			return nil, err
 		}
@@ -159,15 +159,32 @@ func IsFriend(uID, targetUID int64) bool {
 	return false
 }
 
-func UpdateFriendshipStatus(status string, friendshipID, AddresseeID int64) error {
-	query := `UPDATE friendships SET status = ? WHERE id = ? AND addressee_id = ?`
+func UpdateFriendshipStatusToAccepted(friendshipID, AddresseeID int64) error {
+	query := `UPDATE friendships SET status = 'accepted' 
+	WHERE id = ? AND addressee_id = ? AND status = 'pending'`
 	stmt, err := databases.DB.Prepare(query)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(status, friendshipID, AddresseeID)
+	_, err = stmt.Exec(friendshipID, AddresseeID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func UpdateFriendshipStatusToBlocked(friendshipID int64) error {
+	query := `UPDATE friendships SET status = 'blocked' WHERE id = ?`
+	stmt, err := databases.DB.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(friendshipID)
 	if err != nil {
 		return err
 	}

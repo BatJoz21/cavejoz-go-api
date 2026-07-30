@@ -64,7 +64,7 @@ func GetUserDataByUsername(username string) (*User, error) {
 		full_name,
 		bio,
 		avatar_url
-	FROM users WHERE id = ?`
+	FROM users WHERE username = ?`
 	row := databases.DB.QueryRow(query, username)
 
 	var u User

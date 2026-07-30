@@ -8,6 +8,7 @@ type FriendDTO struct {
 	FriendshipID int64   `json:"friendship_id"`
 	FriendUID    int64   `json:"friend_u_id"`
 	Username     string  `json:"username"`
+	FullName     string  `json:"full_name"`
 	AvatarUrl    *string `json:"avatar_url"`
 }
 
