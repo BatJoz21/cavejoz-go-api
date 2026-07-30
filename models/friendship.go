@@ -118,6 +118,26 @@ func GetTotalFriendByUID(uID int64) (int, error) {
 	return total, nil
 }
 
+func GetFriendshipStatus(uID, targetUID int64) string {
+	query := `SELECT f.status
+	FROM friendships f
+	JOIN users u ON u.id = CASE
+		WHEN f.requester_id = ? THEN f.addressee_id
+		ELSE f.requester_id
+	END
+	WHERE
+		(f.requester_id = ? AND f.addressee_id = ?) OR (f.requester_id = ? AND f.addressee_id = ?)`
+	row := databases.DB.QueryRow(query, uID, uID, targetUID, targetUID, uID)
+
+	var status string
+	err := row.Scan(&status)
+	if err == nil {
+		return status
+	}
+
+	return ""
+}
+
 func IsFriendshipDataExists(uID, targetUID int64) (bool, int64) {
 	query := `SELECT f.id
 	FROM friendships f
