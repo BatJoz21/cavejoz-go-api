@@ -2,7 +2,6 @@ package routes
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/BatJoz21/cavejoz-go-api/models"
 	"github.com/BatJoz21/cavejoz-go-api/utils"
@@ -31,27 +30,14 @@ func getUserProfile(context *gin.Context) {
 }
 
 func getUserAvatar(context *gin.Context) {
-	// Get user's ID from param
-	uID, err := strconv.ParseInt(context.Param("uID"), 10, 64)
-	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-		return
-	}
+	// Get filename from param
+	filename := context.Param("filename")
 
-	// Get user data from database
-	avatarUrl, err := models.GetStoredAvatarPath(uID)
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
-	}
+	// Get avatar url
+	avatarUrl := utils.GetAvatarPath(&filename)
 
-	// Check if avatar url is null
-	if avatarUrl == nil {
-		context.Status(http.StatusNoContent)
-		return
-	}
-
-	context.File(*avatarUrl)
+	// Show the image
+	context.File(avatarUrl)
 }
 
 func updateUserProfile(context *gin.Context) {

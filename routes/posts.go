@@ -100,6 +100,35 @@ func viewAPost(context *gin.Context) {
 	context.JSON(http.StatusOK, post)
 }
 
+func getPostContentImage(context *gin.Context) {
+	// Get the filename
+	filename := context.Param("filename")
+
+	// Get content image url
+	contentUrl := utils.GetImageContentPath(&filename)
+
+	// Show the image
+	context.File(contentUrl)
+}
+
+func getTotalUserPost(context *gin.Context) {
+	// Get user ID
+	uID, err := strconv.ParseInt(context.Param("uID"), 10, 64)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Get the total
+	total, err := models.GetTotalPostByUID(uID)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	context.JSON(http.StatusOK, total)
+}
+
 func editAPost(context *gin.Context) {
 	// Get post ID
 	id, err := strconv.ParseInt(context.Param("postID"), 10, 64)

@@ -132,6 +132,19 @@ func GetPostVisibility(postID int64) (*string, int64, error) {
 	return &visibility, postUserID, nil
 }
 
+func GetTotalPostByUID(uID int64) (int, error) {
+	query := `SELECT COUNT(*) FROM posts WHERE user_id = ?`
+	row := databases.DB.QueryRow(query, uID)
+
+	var total int
+	err := row.Scan(&total)
+	if err != nil {
+		return 0, err
+	}
+
+	return total, nil
+}
+
 func (p *Post) EditPost() error {
 	query := `UPDATE posts SET
 		caption = ?,

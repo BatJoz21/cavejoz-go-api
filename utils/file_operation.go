@@ -51,8 +51,8 @@ func SaveAvatar(file *multipart.FileHeader, username string, context *gin.Contex
 		return nil, err
 	}
 
-	// Return the image's path
-	return &path, nil
+	// Return the image's file name
+	return &filename, nil
 }
 
 func SavePostContent(file *multipart.FileHeader, uID int64, context *gin.Context) (*string, error) {
@@ -75,8 +75,8 @@ func SavePostContent(file *multipart.FileHeader, uID int64, context *gin.Context
 		return nil, err
 	}
 
-	// Return the image's path
-	return &path, nil
+	// Return the image's file name
+	return &filename, nil
 }
 
 func RemoveImage(filepath *string) error {

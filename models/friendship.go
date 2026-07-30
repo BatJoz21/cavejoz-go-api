@@ -99,30 +99,23 @@ func GetUserFriends(uID int64) (*[]FriendDTO, error) {
 	return &friends, nil
 }
 
-func GetFriendProfile(uID, frienUID int64) (*FriendProfileDTO, error) {
-	query := `SELECT
-		f.id,
-		u.id,
-		u.username,
-		u.full_name,
-		u.bio,
-		u.avatar_url
+func GetTotalFriendByUID(uID int64) (int, error) {
+	query := `SELECT COUNT(*)
 	FROM friendships f
 	JOIN users u ON u.id = CASE
 		WHEN f.requester_id = ? THEN f.addressee_id
 		ELSE f.requester_id
 	END
-	WHERE f.status = 'accepted' AND (f.requester_id = ? OR f.addressee_id = ?) AND u.id = ?`
-	row := databases.DB.QueryRow(query, uID, uID, uID, frienUID)
+	WHERE f.status = 'accepted' AND (f.requester_id = ? OR f.addressee_id = ?)`
+	row := databases.DB.QueryRow(query, uID, uID, uID)
 
-	var profile FriendProfileDTO
-	err := row.Scan(&profile.FriendshipID, &profile.FriendUID, &profile.Username,
-		&profile.FullName, &profile.Bio, &profile.AvatarUrl)
+	var total int
+	err := row.Scan(&total)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 
-	return &profile, nil
+	return total, nil
 }
 
 func IsFriendshipDataExists(uID, targetUID int64) (bool, int64) {
