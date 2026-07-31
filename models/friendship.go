@@ -14,6 +14,8 @@ type Friendship struct {
 	CreatedAt   *time.Time `json:"created_at"`
 }
 
+const FriendshipListDataMax = 10
+
 func (f *Friendship) SaveAddFriendData() error {
 	query := `INSERT INTO friendships(requester_id, addressee_id, status)
 		VALUES (?, ?, ?)`
@@ -36,12 +38,13 @@ func (f *Friendship) SaveAddFriendData() error {
 	return nil
 }
 
-func GetPendingFriends(uID int64) (*[]FriendDTO, error) {
+func GetPendingFriends(uID int64, offset int) (*[]FriendDTO, error) {
 	query := `SELECT f.id, u.id, u.username, u.full_name, u.avatar_url
 	FROM friendships f
 	JOIN users u ON u.id = f.requester_id
-	WHERE f.status = 'pending' AND f.addressee_id = ?`
-	rows, err := databases.DB.Query(query, uID)
+	WHERE f.status = 'pending' AND f.addressee_id = ?
+	LIMIT ? OFFSET ?`
+	rows, err := databases.DB.Query(query, uID, FriendshipListDataMax, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -66,15 +69,16 @@ func GetPendingFriends(uID int64) (*[]FriendDTO, error) {
 	return &friends, nil
 }
 
-func GetFriendshipList(uID int64, status string) (*[]FriendDTO, error) {
+func GetFriendshipList(uID int64, status string, offset int) (*[]FriendDTO, error) {
 	query := `SELECT f.id, u.id, u.username, u.full_name, u.avatar_url
 	FROM friendships f
 	JOIN users u ON u.id = CASE
 		WHEN f.requester_id = ? THEN f.addressee_id
 		ELSE f.requester_id
 	END
-	WHERE f.status = ? AND (f.requester_id = ? OR f.addressee_id = ?)`
-	rows, err := databases.DB.Query(query, uID, status, uID, uID)
+	WHERE f.status = ? AND (f.requester_id = ? OR f.addressee_id = ?)
+	LIMIT ? OFFSET ?`
+	rows, err := databases.DB.Query(query, uID, status, uID, uID, FriendshipListDataMax, offset)
 	if err != nil {
 		return nil, err
 	}

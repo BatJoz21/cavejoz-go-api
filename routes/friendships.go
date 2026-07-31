@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/BatJoz21/cavejoz-go-api/models"
+	"github.com/BatJoz21/cavejoz-go-api/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -88,8 +89,11 @@ func getPendingFriendList(context *gin.Context) {
 	// Get logged in user ID
 	uID := context.GetInt64("uID")
 
+	// Get pagination offset
+	offset := utils.GetOffsetForPagination(models.FriendshipListDataMax, context)
+
 	// Get pending status data from database
-	pendings, err := models.GetPendingFriends(uID)
+	pendings, err := models.GetPendingFriends(uID, offset)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
@@ -120,8 +124,11 @@ func getFriendsList(context *gin.Context) {
 	// Get logged in user ID
 	uID := context.GetInt64("uID")
 
+	// Get pagination offset
+	offset := utils.GetOffsetForPagination(models.FriendshipListDataMax, context)
+
 	// Get friends list
-	friends, err := models.GetFriendshipList(uID, "accepted")
+	friends, err := models.GetFriendshipList(uID, "accepted", offset)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
@@ -134,8 +141,11 @@ func getBlockedList(context *gin.Context) {
 	// Get logged in user ID
 	uID := context.GetInt64("uID")
 
+	// Get pagination offset
+	offset := utils.GetOffsetForPagination(models.FriendshipListDataMax, context)
+
 	// Get blocked users list
-	blocked, err := models.GetFriendshipList(uID, "blocked")
+	blocked, err := models.GetFriendshipList(uID, "blocked", offset)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return

@@ -15,6 +15,8 @@ type Post struct {
 	CreatedAt  *time.Time `json:"created_at"`
 }
 
+const PostsLimitPerPage = 5
+
 func (p *Post) Save() error {
 	query := `INSERT INTO posts(user_id, caption, content_url, visibility)
 		VALUES (?, ?, ?, ?)`
@@ -36,7 +38,7 @@ func (p *Post) Save() error {
 	return nil
 }
 
-func GetAllPostsofAUser(uID int64, visibility string) (*[]Post, error) {
+func GetAllPostsofAUser(uID int64, visibility string, offset int) (*[]Post, error) {
 	query := `SELECT
 		id,
 		user_id,
@@ -54,6 +56,10 @@ func GetAllPostsofAUser(uID int64, visibility string) (*[]Post, error) {
 		query += ` AND visibility = ?`
 		args = append(args, visibility)
 	}
+
+	query += ` LIMIT ? OFFSET ?`
+	args = append(args, PostsLimitPerPage)
+	args = append(args, offset)
 
 	rows, err := databases.DB.Query(query, args...)
 	if err != nil {

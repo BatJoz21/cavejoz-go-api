@@ -48,6 +48,9 @@ func getAllPostsOfAUser(context *gin.Context) {
 		return
 	}
 
+	// Get offset for pagination
+	offset := utils.GetOffsetForPagination(models.PostsLimitPerPage, context)
+
 	// Check friendship status
 	visibility := ""
 	if !models.IsFriend(context.GetInt64("uID"), id) {
@@ -55,7 +58,7 @@ func getAllPostsOfAUser(context *gin.Context) {
 	}
 
 	// Get posts
-	posts, err := models.GetAllPostsofAUser(id, visibility)
+	posts, err := models.GetAllPostsofAUser(id, visibility, offset)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
