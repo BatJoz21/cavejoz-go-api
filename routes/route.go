@@ -33,6 +33,8 @@ func RegisteredRoutes(server *gin.Engine) {
 	authGroup.GET("/content/image/:filename", getPostContentImage)
 	authGroup.PUT("/posts/:postID", editAPost)
 	authGroup.DELETE("/posts/:postID", deleteAPost)
+	authGroup.POST("/posts/:postID/like", toggleLike)
+	authGroup.GET("/posts/:postID/like", getTotalLike)
 
 	authGroup.GET("/users/posts/:uID", getAllPostsOfAUser)
 	authGroup.GET("/users/posts/:uID/total", getTotalUserPost)
