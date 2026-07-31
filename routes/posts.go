@@ -156,7 +156,7 @@ func editAPost(context *gin.Context) {
 			return
 		}
 
-		err = utils.RemoveImage(&post.ContentUrl)
+		err = utils.RemoveImage(&post.ContentUrl, "content")
 		if err != nil {
 			context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 			return
@@ -195,7 +195,7 @@ func deleteAPost(context *gin.Context) {
 	}
 
 	// Delete post's content
-	err = utils.RemoveImage(&post.ContentUrl)
+	err = utils.RemoveImage(&post.ContentUrl, "content")
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return

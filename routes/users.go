@@ -66,7 +66,7 @@ func updateUserProfile(context *gin.Context) {
 
 		// Delete old avatar if exists
 		if user.AvatarUrl != nil {
-			err = utils.RemoveImage(user.AvatarUrl)
+			err = utils.RemoveImage(user.AvatarUrl, "profile")
 			if err != nil {
 				context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 				return

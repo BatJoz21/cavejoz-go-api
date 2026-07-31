@@ -15,7 +15,7 @@ type Post struct {
 	CreatedAt  *time.Time `json:"created_at"`
 }
 
-const PostsLimitPerPage = 5
+const PostsLimitPerPage = 10
 
 func (p *Post) Save() error {
 	query := `INSERT INTO posts(user_id, caption, content_url, visibility)

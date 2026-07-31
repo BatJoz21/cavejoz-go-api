@@ -79,12 +79,21 @@ func SavePostContent(file *multipart.FileHeader, uID int64, context *gin.Context
 	return &filename, nil
 }
 
-func RemoveImage(filepath *string) error {
+func RemoveImage(filename *string, mode string) error {
+	// Get filepath
+	var filepath string
+	switch mode {
+	case "profile":
+		filepath = GetAvatarPath(filename)
+	case "content":
+		filepath = GetImageContentPath(filename)
+	}
+
 	// Find the file
-	_, err := os.Stat(*filepath)
+	_, err := os.Stat(filepath)
 	if err == nil {
 		// Remove the file
-		err = os.Remove(*filepath)
+		err = os.Remove(filepath)
 		if err != nil {
 			return err
 		}
