@@ -106,6 +106,10 @@ func GetAvatarPath(filename *string) string {
 	return filepath.Join(UploadRoots, AvatarDir, *filename)
 }
 
+func GetDefaultAvatar() string {
+	return filepath.Join("assets", "default_user.png")
+}
+
 func GetImageContentPath(filename *string) string {
 	return filepath.Join(UploadRoots, ImageContentDir, *filename)
 }

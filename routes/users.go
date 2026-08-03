@@ -2,6 +2,7 @@ package routes
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/BatJoz21/cavejoz-go-api/models"
 	"github.com/BatJoz21/cavejoz-go-api/utils"
@@ -35,6 +36,12 @@ func getUserAvatar(context *gin.Context) {
 
 	// Get avatar url
 	avatarUrl := utils.GetAvatarPath(&filename)
+
+	if _, err := os.Stat(avatarUrl); err != nil {
+		if os.IsNotExist(err) {
+			avatarUrl = utils.GetDefaultAvatar()
+		}
+	}
 
 	// Show the image
 	context.File(avatarUrl)

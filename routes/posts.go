@@ -53,8 +53,10 @@ func getAllPostsOfAUser(context *gin.Context) {
 
 	// Check friendship status
 	visibility := ""
-	if !models.IsFriend(context.GetInt64("uID"), id) {
-		visibility = "public"
+	if context.GetInt64("uID") != id {
+		if !models.IsFriend(context.GetInt64("uID"), id) {
+			visibility = "public"
+		}
 	}
 
 	// Get posts
