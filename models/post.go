@@ -83,20 +83,24 @@ func GetAllPostsofAUser(uID int64, visibility string, offset int) (*[]Post, erro
 	return &posts, nil
 }
 
-func GetPostofAUser(postID int64) (*Post, error) {
+func GetPostofAUser(postID int64) (*ViewPostDTO, error) {
 	query := `SELECT
-		id,
-		user_id,
-		caption,
-		content_url,
-		visibility,
-		created_at
-	FROM posts
-	WHERE id = ?`
+		p.id,
+		p.user_id,
+		p.caption,
+		p.content_url,
+		p.visibility,
+		p.created_at,
+		u.username,
+		u.avatar_url
+	FROM posts p
+	JOIN users u ON p.user_id = u.id
+	WHERE p.id = ?`
 	row := databases.DB.QueryRow(query, postID)
 
-	var post Post
-	err := row.Scan(&post.ID, &post.UserID, &post.Caption, &post.ContentUrl, &post.Visibility, &post.CreatedAt)
+	var post ViewPostDTO
+	err := row.Scan(&post.ID, &post.UserID, &post.Caption, &post.ContentUrl,
+		&post.Visibility, &post.CreatedAt, &post.Username, &post.AvatarUrl)
 	if err != nil {
 		return nil, err
 	}

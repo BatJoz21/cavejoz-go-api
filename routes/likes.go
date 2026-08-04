@@ -50,12 +50,14 @@ func toggleLike(context *gin.Context) {
 }
 
 func getTotalLike(context *gin.Context) {
+	// Get post ID
 	id, err := strconv.ParseInt(context.Param("postID"), 10, 64)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
 
+	// Get the total
 	total := models.TotalLikeofAPost(id)
 	context.JSON(http.StatusOK, total)
 }
