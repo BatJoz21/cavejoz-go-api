@@ -9,6 +9,7 @@ import (
 )
 
 func toggleLike(context *gin.Context) {
+	// Initialize struct and get parameter value
 	var like models.Like
 	var err error
 	like.PostID, err = strconv.ParseInt(context.Param("postID"), 10, 64)
@@ -18,16 +19,22 @@ func toggleLike(context *gin.Context) {
 	}
 	like.UserID = context.GetInt64("uID")
 
+	// Check if user has liked the post
 	isExists, id := models.CheckIfLikeExists(like.PostID, like.UserID)
 	message := ""
+	isLiked := true
+
 	if isExists {
+		// Delete like data from database (unlike)
 		err = models.DeleteLike(id)
 		if err != nil {
 			context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 			return
 		}
 		message = "Post unlike"
+		isLiked = false
 	} else {
+		// Save like data to database (like)
 		err = like.SaveLike()
 		if err != nil {
 			context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
@@ -36,7 +43,10 @@ func toggleLike(context *gin.Context) {
 		message = "Post liked"
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": message})
+	// Get current total like on the post
+	total := models.TotalLikeofAPost(like.PostID)
+
+	context.JSON(http.StatusOK, gin.H{"message": message, "liked": isLiked, "count": total})
 }
 
 func getTotalLike(context *gin.Context) {
