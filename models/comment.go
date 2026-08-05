@@ -112,3 +112,19 @@ func (c *Comment) Delete() error {
 
 	return nil
 }
+
+func DeleteAllCommentByPostID(postID int64) error {
+	query := `DELETE FROM comments WHERE post_id = ?`
+	stmt, err := databases.DB.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(postID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -196,8 +196,15 @@ func deleteAPost(context *gin.Context) {
 		return
 	}
 
-	// Delete post's content
-	err = utils.RemoveImage(&post.ContentUrl, "content")
+	// Delete post's like
+	err = models.DeleteAllLikeByPostID(post.ID)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Delete post's comment
+	err = models.DeleteAllCommentByPostID(post.ID)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
@@ -205,6 +212,13 @@ func deleteAPost(context *gin.Context) {
 
 	// Delete post data
 	err = models.DeletePost(id, context.GetInt64("uID"))
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Delete post's content
+	err = utils.RemoveImage(&post.ContentUrl, "content")
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return

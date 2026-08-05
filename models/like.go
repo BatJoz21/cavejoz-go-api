@@ -19,6 +19,7 @@ func (l *Like) SaveLike() error {
 	if err != nil {
 		return err
 	}
+	defer stmt.Close()
 
 	result, err := stmt.Exec(l.PostID, l.UserID)
 	if err != nil {
@@ -61,8 +62,25 @@ func DeleteLike(likeID int64) error {
 	if err != nil {
 		return err
 	}
+	defer stmt.Close()
 
 	_, err = stmt.Exec(likeID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func DeleteAllLikeByPostID(postID int64) error {
+	query := `DELETE FROM likes WHERE post_id = ?`
+	stmt, err := databases.DB.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(postID)
 	if err != nil {
 		return err
 	}
