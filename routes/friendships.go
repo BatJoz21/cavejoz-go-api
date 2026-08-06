@@ -99,7 +99,10 @@ func getPendingFriendList(context *gin.Context) {
 		return
 	}
 
-	context.JSON(http.StatusOK, pendings)
+	// Get total pending
+	total := models.GetTotalPending(uID)
+
+	context.JSON(http.StatusOK, gin.H{"data": pendings, "total": total})
 }
 
 func acceptFriendRequest(context *gin.Context) {
@@ -134,7 +137,14 @@ func getFriendsList(context *gin.Context) {
 		return
 	}
 
-	context.JSON(http.StatusOK, friends)
+	// Get total friends
+	total, err := models.GetTotalFriendshipDataByUID(uID, "accepted")
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"data": friends, "total": total})
 }
 
 func getBlockedList(context *gin.Context) {
@@ -151,7 +161,14 @@ func getBlockedList(context *gin.Context) {
 		return
 	}
 
-	context.JSON(http.StatusOK, blocked)
+	// Get total blocked
+	total, err := models.GetTotalFriendshipDataByUID(uID, "blocked")
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"data": blocked, "total": total})
 }
 
 func getUserTotalFriend(context *gin.Context) {
@@ -163,7 +180,7 @@ func getUserTotalFriend(context *gin.Context) {
 	}
 
 	// Get total friends
-	total, err := models.GetTotalFriendByUID(uID)
+	total, err := models.GetTotalFriendshipDataByUID(uID, "accepted")
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return

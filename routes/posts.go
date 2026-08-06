@@ -40,6 +40,27 @@ func createPost(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"message": "Post uploaded"})
 }
 
+func getPostsForFeeds(context *gin.Context) {
+	// Get friend's IDs
+	friendIDs, err := models.GetFriendsID(context.GetInt64("uID"))
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Get offset for pagination
+	offset := utils.GetOffsetForPagination(models.FeedsLimit, context)
+
+	// Get posts
+	posts, err := models.GetPostsForFeedByUIDs(*friendIDs, offset)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	context.JSON(http.StatusOK, posts)
+}
+
 func getAllPostsOfAUser(context *gin.Context) {
 	// Get user ID
 	id, err := strconv.ParseInt(context.Param("uID"), 10, 64)

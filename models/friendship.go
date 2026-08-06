@@ -69,6 +69,22 @@ func GetPendingFriends(uID int64, offset int) (*[]FriendDTO, error) {
 	return &friends, nil
 }
 
+func GetTotalPending(uID int64) int {
+	query := `SELECT COUNT(*)
+	FROM friendships f
+	JOIN users u ON u.id = f.requester_id
+	WHERE f.status = 'pending' AND f.addressee_id = ?`
+	row := databases.DB.QueryRow(query, uID)
+
+	var total int
+	err := row.Scan(&total)
+	if err != nil {
+		return 0
+	}
+
+	return total
+}
+
 func GetFriendshipList(uID int64, status string, offset int) (*[]FriendDTO, error) {
 	query := `SELECT f.id, u.id, u.username, u.full_name, u.avatar_url
 	FROM friendships f
@@ -103,15 +119,47 @@ func GetFriendshipList(uID int64, status string, offset int) (*[]FriendDTO, erro
 	return &friends, nil
 }
 
-func GetTotalFriendByUID(uID int64) (int, error) {
-	query := `SELECT COUNT(*)
+func GetFriendsID(uID int64) (*[]int64, error) {
+	query := `SELECT u.id
 	FROM friendships f
 	JOIN users u ON u.id = CASE
 		WHEN f.requester_id = ? THEN f.addressee_id
 		ELSE f.requester_id
 	END
 	WHERE f.status = 'accepted' AND (f.requester_id = ? OR f.addressee_id = ?)`
-	row := databases.DB.QueryRow(query, uID, uID, uID)
+	rows, err := databases.DB.Query(query, uID, uID, uID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		err = rows.Scan(&id)
+		if err != nil {
+			return nil, err
+		}
+
+		ids = append(ids, id)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return &ids, nil
+}
+
+func GetTotalFriendshipDataByUID(uID int64, status string) (int, error) {
+	query := `SELECT COUNT(*)
+	FROM friendships f
+	JOIN users u ON u.id = CASE
+		WHEN f.requester_id = ? THEN f.addressee_id
+		ELSE f.requester_id
+	END
+	WHERE f.status = ? AND (f.requester_id = ? OR f.addressee_id = ?)`
+	row := databases.DB.QueryRow(query, uID, status, uID, uID)
 
 	var total int
 	err := row.Scan(&total)

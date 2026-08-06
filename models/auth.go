@@ -26,11 +26,11 @@ func ValidateCredentials(u *UserLoginDTO) error {
 
 func GetUserDataByEmail(email string) (*SessionDataDTO, error) {
 	// Get user data from database for login purpose
-	query := `SELECT id, username, role FROM users WHERE email = ?`
+	query := `SELECT id, username, role, avatar_url FROM users WHERE email = ?`
 	row := databases.DB.QueryRow(query, email)
 
 	var data SessionDataDTO
-	if err := row.Scan(&data.ID, &data.Username, &data.Role); err != nil {
+	if err := row.Scan(&data.ID, &data.Username, &data.Role, &data.AvatarUrl); err != nil {
 		return nil, err
 	}
 

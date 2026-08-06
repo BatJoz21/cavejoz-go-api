@@ -15,7 +15,10 @@ type Post struct {
 	CreatedAt  *time.Time `json:"created_at"`
 }
 
-const PostsLimitPerPage = 10
+const (
+	PostsLimitPerPage = 5
+	FeedsLimit = 2
+)
 
 func (p *Post) Save() error {
 	query := `INSERT INTO posts(user_id, caption, content_url, visibility)
@@ -38,15 +41,73 @@ func (p *Post) Save() error {
 	return nil
 }
 
-func GetAllPostsofAUser(uID int64, visibility string, offset int) (*[]Post, error) {
+func GetPostsForFeedByUIDs(frID []int64, offset int) (*[]ViewPostDTO, error) {
 	query := `SELECT
-		id,
-		user_id,
-		caption,
-		content_url,
-		visibility,
-		created_at
-	FROM posts
+		p.id,
+		p.user_id,
+		p.caption,
+		p.content_url,
+		p.visibility,
+		p.created_at,
+		u.username,
+		u.avatar_url
+	FROM posts p
+	JOIN users u ON p.user_id = u.id`
+
+	if len(frID) == 0 {
+		return nil, nil
+	}
+
+	var args []any
+	for i := 0; i < len(frID); i++ {
+		if i == 0 {
+			query += ` WHERE p.user_id = ?`
+			args = append(args, frID[i])
+		} else {
+			query += ` OR p.user_id = ?`
+			args = append(args, frID[i])
+		}
+	}
+
+	query += ` ORDER BY p.created_at DESC
+	LIMIT ? OFFSET ?`
+	args = append(args, FeedsLimit)
+	args = append(args, offset)
+
+	rows, err := databases.DB.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	var posts []ViewPostDTO
+	for rows.Next() {
+		var post ViewPostDTO
+		if err := rows.Scan(&post.ID, &post.UserID, &post.Caption, &post.ContentUrl,
+			&post.Visibility, &post.CreatedAt, &post.Username, &post.AvatarUrl); err != nil {
+			return nil, err
+		}
+		posts = append(posts, post)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return &posts, nil
+}
+
+func GetAllPostsofAUser(uID int64, visibility string, offset int) (*[]ViewPostDTO, error) {
+	query := `SELECT
+		p.id,
+		p.user_id,
+		p.caption,
+		p.content_url,
+		p.visibility,
+		p.created_at,
+		u.username,
+		u.avatar_url
+	FROM posts p
+	JOIN users u ON p.user_id = u.id
 	WHERE user_id = ?`
 
 	var args []any
@@ -66,11 +127,11 @@ func GetAllPostsofAUser(uID int64, visibility string, offset int) (*[]Post, erro
 		return nil, err
 	}
 
-	var posts []Post
+	var posts []ViewPostDTO
 	for rows.Next() {
-		var post Post
+		var post ViewPostDTO
 		if err := rows.Scan(&post.ID, &post.UserID, &post.Caption, &post.ContentUrl,
-			&post.Visibility, &post.CreatedAt); err != nil {
+			&post.Visibility, &post.CreatedAt, &post.Username, &post.AvatarUrl); err != nil {
 			return nil, err
 		}
 		posts = append(posts, post)

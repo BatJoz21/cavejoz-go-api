@@ -7,7 +7,8 @@ type UserLoginDTO struct {
 }
 
 type SessionDataDTO struct {
-	ID       int64  `json:"id"`
-	Username string `json:"username"`
-	Role     string `json:"role"`
+	ID        int64   `json:"id"`
+	Username  string  `json:"username"`
+	Role      string  `json:"role"`
+	AvatarUrl *string `json:"avatar_url"`
 }

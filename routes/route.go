@@ -28,6 +28,8 @@ func RegisteredRoutes(server *gin.Engine) {
 	authGroup.GET("/block", getBlockedList)
 	authGroup.POST("/block", blockAUser)
 
+	authGroup.GET("/feeds", getPostsForFeeds)
+
 	authGroup.POST("/posts", createPost)
 	authGroup.GET("/posts/:postID", viewAPost)
 	authGroup.GET("/content/image/:filename", getPostContentImage)
