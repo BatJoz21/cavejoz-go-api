@@ -17,7 +17,7 @@ type Post struct {
 
 const (
 	PostsLimitPerPage = 5
-	FeedsLimit = 2
+	FeedsLimit        = 2
 )
 
 func (p *Post) Save() error {
@@ -187,6 +187,18 @@ func GetPostForOperation(postID, uID int64) (*Post, error) {
 	}
 
 	return &post, nil
+}
+
+func GetPostOwnerID(postID int64) (int64, error) {
+	query := `SELECT user_id FROM posts WHERE id = ?`
+	row := databases.DB.QueryRow(query, postID)
+
+	var userID int64
+	if err := row.Scan(&userID); err != nil {
+		return 0, err
+	}
+
+	return userID, nil
 }
 
 func GetPostVisibility(postID int64) (*string, int64, error) {

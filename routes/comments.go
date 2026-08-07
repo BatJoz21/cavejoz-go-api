@@ -38,6 +38,25 @@ func createNewComment(context *gin.Context) {
 		return
 	}
 
+	// Create notification
+	userID, err := models.GetPostOwnerID(postID)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	notif := models.Notification{
+		RecipientID: userID,
+		ActorID:     comment.UserID,
+		Type:        "comment",
+		ReferenceID: comment.ID,
+		IsRead:      false,
+	}
+	if err := notif.Save(); err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
 	context.JSON(http.StatusOK, gin.H{"message": "New comment uploaded"})
 }
 

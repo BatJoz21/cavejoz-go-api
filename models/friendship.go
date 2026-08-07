@@ -85,6 +85,19 @@ func GetTotalPending(uID int64) int {
 	return total
 }
 
+func GetRequesterID(friendshipID int64) (int64, error) {
+	query := `SELECT requester_id FROM friendships WHERE id = ?`
+	row := databases.DB.QueryRow(query, friendshipID)
+
+	var id int64
+	err := row.Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+
+	return id, nil
+}
+
 func GetFriendshipList(uID int64, status string, offset int) (*[]FriendDTO, error) {
 	query := `SELECT f.id, u.id, u.username, u.full_name, u.avatar_url
 	FROM friendships f

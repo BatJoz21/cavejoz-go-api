@@ -35,4 +35,11 @@ func createIndexOnTable() {
 	if err != nil {
 		panic("Failed to create index on comments table: " + err.Error())
 	}
+
+	notificationsIndex := `CREATE INDEX IF NOT EXISTS notifications_table_index
+		ON notifications (reference_id, is_read)`
+	_, err = DB.Exec(notificationsIndex)
+	if err != nil {
+		panic("Failed to create index on notifications table: " + err.Error())
+	}
 }

@@ -43,6 +43,8 @@ func RegisteredRoutes(server *gin.Engine) {
 	authGroup.GET("/posts/:postID/comment", getAllCommentOfAPost)
 	authGroup.DELETE("/posts/:postID/comment/:commentID", deleteComment)
 
+	authGroup.GET("/notifications", getAllNotification)
+
 	authGroup.GET("/users/posts/:uID", getAllPostsOfAUser)
 	authGroup.GET("/users/posts/:uID/total", getTotalUserPost)
 }

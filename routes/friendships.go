@@ -40,6 +40,19 @@ func addFriend(context *gin.Context) {
 		return
 	}
 
+	// Create friend request notification
+	notif := models.Notification{
+		RecipientID: friendship.AddresseeID,
+		ActorID:     friendship.RequesterID,
+		Type:        "friend_request",
+		ReferenceID: friendship.ID,
+		IsRead:      false,
+	}
+	if err := notif.Save(); err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
 	context.JSON(http.StatusOK, gin.H{"message": "Friend request sent"})
 }
 
@@ -116,6 +129,24 @@ func acceptFriendRequest(context *gin.Context) {
 	// Update stored friendship status to accepted at the database
 	err = models.UpdateFriendshipStatusToAccepted(id, context.GetInt64("uID"))
 	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Sent notification to the requester
+	reqID, err := models.GetRequesterID(id)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+	notif := models.Notification{
+		RecipientID: reqID,
+		ActorID:     context.GetInt64("uID"),
+		Type:        "friend_accept",
+		ReferenceID: id,
+		IsRead:      false,
+	}
+	if err := notif.Save(); err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
