@@ -49,7 +49,7 @@ func createNewComment(context *gin.Context) {
 		RecipientID: userID,
 		ActorID:     comment.UserID,
 		Type:        "comment",
-		ReferenceID: comment.ID,
+		ReferenceID: comment.PostID,
 		IsRead:      false,
 	}
 	if err := notif.Save(); err != nil {

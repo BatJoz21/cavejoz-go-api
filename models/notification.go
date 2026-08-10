@@ -95,3 +95,55 @@ func GetNotificationsByRecipientID(recID int64, limit int) (*[]ViewNotifDTO, err
 
 	return &notifs, nil
 }
+
+func GetNotificationByID(notifID int64) (*Notification, error) {
+	query := `SELECT
+		n.id,
+		n.actor_id,
+		n.type,
+		n.reference_id,
+		n.is_read,
+		n.created_at
+	FROM notifications n WHERE n.id = ?`
+	row := databases.DB.QueryRow(query, notifID)
+
+	var n Notification
+	err := row.Scan(&n.ID, &n.ActorID, &n.Type, &n.ReferenceID, &n.IsRead, &n.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return &n, nil
+}
+
+func (n *Notification) UpdateIsRead(isRead int) error {
+	query := `UPDATE notifications SET is_read = ? WHERE id = ?`
+	stmt, err := databases.DB.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(isRead, n.ID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func UpdateIsReadByRecipientID(isRead int, recipientID int64) error {
+	query := `UPDATE notifications SET is_read = ? WHERE recipient_id = ?`
+	stmt, err := databases.DB.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(isRead, recipientID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

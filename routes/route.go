@@ -45,6 +45,8 @@ func RegisteredRoutes(server *gin.Engine) {
 
 	authGroup.GET("/notifications", getAllNotification)
 	authGroup.GET("/notifications/:limit", getNotificationWithLimit)
+	authGroup.PUT("/notifications/markAllRead", markAllNotificationRead)
+	authGroup.PUT("/notifications/:notifID", markReadNotification)
 
 	authGroup.GET("/users/posts/:uID", getAllPostsOfAUser)
 	authGroup.GET("/users/posts/:uID/total", getTotalUserPost)

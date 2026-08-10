@@ -51,10 +51,10 @@ func toggleLike(context *gin.Context) {
 
 		notif := models.Notification{
 			RecipientID: userID,
-			ActorID: like.UserID,
-			Type: "like",
-			ReferenceID: like.ID,
-			IsRead: false,
+			ActorID:     like.UserID,
+			Type:        "like",
+			ReferenceID: like.PostID,
+			IsRead:      false,
 		}
 		if err := notif.Save(); err != nil {
 			context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
