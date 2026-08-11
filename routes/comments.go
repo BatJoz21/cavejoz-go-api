@@ -44,18 +44,7 @@ func createNewComment(context *gin.Context) {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
-
-	notif := models.Notification{
-		RecipientID: userID,
-		ActorID:     comment.UserID,
-		Type:        "comment",
-		ReferenceID: comment.PostID,
-		IsRead:      false,
-	}
-	if err := notif.Save(); err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
-	}
+	NotifyandPush(userID, comment.UserID, comment.PostID, "comment")
 
 	context.JSON(http.StatusOK, gin.H{"message": "New comment uploaded"})
 }

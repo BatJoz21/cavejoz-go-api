@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -69,5 +70,34 @@ func markReadNotification(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{
 		"message":      "Notification is read",
 		"notification": n,
+	})
+}
+
+func NotifyandPush(recipientID, actorID, refID int64, notifType string) {
+	if recipientID == actorID {
+		return
+	}
+
+	notif := models.Notification{
+		RecipientID: recipientID,
+		ActorID:     actorID,
+		Type:        notifType,
+		ReferenceID: refID,
+		IsRead:      false,
+	}
+	if err := notif.Save(); err != nil {
+		log.Printf("notification insert failed: %v", err)
+		return
+	}
+
+	viewNotif, err := models.GetViewNotificationByID(notif.ID)
+	if err != nil {
+		log.Printf("notification fetch failed: %v", err)
+		return
+	}
+
+	appHub.Send(recipientID, gin.H{
+		"type":         "notification",
+		"notification": viewNotif,
 	})
 }

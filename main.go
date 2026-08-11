@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/BatJoz21/cavejoz-go-api/databases"
+	"github.com/BatJoz21/cavejoz-go-api/hub"
 	"github.com/BatJoz21/cavejoz-go-api/routes"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -18,7 +19,9 @@ func main() {
 
 	server := gin.Default()
 
-	routes.RegisteredRoutes(server)
+	h := hub.NewHub()
+
+	routes.RegisteredRoutes(server, h)
 
 	server.Run(":8080")
 }

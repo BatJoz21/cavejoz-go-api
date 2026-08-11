@@ -51,7 +51,7 @@ func GetNotificationsByRecipientID(recID int64, limit int) (*[]ViewNotifDTO, err
 		n.created_at
 	FROM notifications n
 	JOIN users u ON n.actor_id = u.id
-	WHERE recipient_id = ? AND n.is_read = 0
+	WHERE n.recipient_id = ? AND n.is_read = 0
 	ORDER BY n.created_at DESC`
 
 	var args []any
@@ -94,6 +94,43 @@ func GetNotificationsByRecipientID(recID int64, limit int) (*[]ViewNotifDTO, err
 	}
 
 	return &notifs, nil
+}
+
+func GetViewNotificationByID(id int64) (*ViewNotifDTO, error) {
+	query := `SELECT
+		n.id,
+		n.actor_id,
+		u.username,
+		u.avatar_url,
+		n.type,
+		n.reference_id,
+		n.is_read,
+		n.created_at
+	FROM notifications n
+	JOIN users u ON n.actor_id = u.id
+	WHERE n.id = ? AND n.is_read = 0
+	ORDER BY n.created_at DESC`
+
+	row := databases.DB.QueryRow(query, id)
+
+	var n ViewNotifDTO
+	err := row.Scan(&n.ID, &n.ActorID, &n.Username, &n.AvatarUrl, &n.Type, &n.ReferenceID, &n.IsRead, &n.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	switch n.Type {
+	case "like":
+		n.Preview = n.Username + " has liked your post"
+	case "comment":
+		n.Preview = n.Username + " has commented on your post"
+	case "friend_request":
+		n.Preview = n.Username + " has sent you a friend request"
+	case "friend_accept":
+		n.Preview = n.Username + " has accepted your friend request"
+	}
+
+	return &n, nil
 }
 
 func GetNotificationByID(notifID int64) (*Notification, error) {

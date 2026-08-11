@@ -48,18 +48,7 @@ func toggleLike(context *gin.Context) {
 			context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 			return
 		}
-
-		notif := models.Notification{
-			RecipientID: userID,
-			ActorID:     like.UserID,
-			Type:        "like",
-			ReferenceID: like.PostID,
-			IsRead:      false,
-		}
-		if err := notif.Save(); err != nil {
-			context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-			return
-		}
+		NotifyandPush(userID, like.UserID, like.PostID, "like")
 	}
 
 	// Get current total like on the post

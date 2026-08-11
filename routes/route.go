@@ -1,15 +1,25 @@
 package routes
 
 import (
+	"github.com/BatJoz21/cavejoz-go-api/hub"
 	"github.com/BatJoz21/cavejoz-go-api/middlewares"
 	"github.com/gin-gonic/gin"
 )
 
-func RegisteredRoutes(server *gin.Engine) {
+var appHub *hub.Hub
+
+func RegisteredRoutes(server *gin.Engine, h *hub.Hub) {
+	appHub = h
+	if appHub == nil {
+		panic("hub not initialized")
+	}
+
 	server.POST("/register", registerNewUser)
 	server.POST("/login", login)
 	server.POST("/refresh", refreshAccessToken)
 	server.POST("/logout", logout)
+
+	server.GET("/api/v1/ws", WebSocketHandler(appHub))
 
 	authGroup := server.Group("")
 	authGroup.Use(middlewares.Authenticate)
