@@ -1,7 +1,6 @@
 package hub
 
 import (
-	"log"
 	"sync"
 	"time"
 )
@@ -44,7 +43,6 @@ func (h *Hub) Send(uID int64, payload any) {
 			// queued
 		default:
 			// buffer full
-			log.Printf("send buffer full for user %d, dropping notification", uID)
 		}
 	}
 }

@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/BatJoz21/cavejoz-go-api/hub"
@@ -37,18 +36,14 @@ func WebSocketHandler(h *hub.Hub) gin.HandlerFunc {
 		// Upgrade
 		conn, err := upgrader.Upgrade(context.Writer, context.Request, nil)
 		if err != nil {
-			log.Println("upgrade failed:", err)
 			return
 		}
 
 		// Add new connection
 		client := hub.NewClient(uID, conn)
 		h.Add(uID, client)
-		log.Printf("User %d connected — total connections: %d", uID, h.Count(uID))
 
 		go client.WritePump()
 		client.ReadPump(h)
-
-		log.Printf("User %d disconnected - total connections: %d", uID, h.Count(uID))
 	}
 }

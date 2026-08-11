@@ -1,7 +1,6 @@
 package hub
 
 import (
-	"log"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -42,7 +41,6 @@ func (c *Client) WritePump() {
 			}
 
 		case <-ticker.C:
-			log.Printf("ping -> user %d", c.UserID)
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
@@ -59,7 +57,6 @@ func (c *Client) ReadPump(h *Hub) {
 
 	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.Conn.SetPongHandler(func(string) error {
-		log.Printf("ping <- user %d", c.UserID)
 		c.Conn.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
 	})
@@ -70,7 +67,6 @@ func (c *Client) ReadPump(h *Hub) {
 				websocket.CloseGoingAway,
 				websocket.CloseNormalClosure,
 				websocket.CloseNoStatusReceived) {
-				log.Printf("User %d dropped unexpectedly: %v", c.UserID, err)
 			}
 			break
 		}

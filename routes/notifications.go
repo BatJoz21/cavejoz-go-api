@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"log"
 	"net/http"
 	"strconv"
 
@@ -88,14 +87,12 @@ func NotifyandPush(recipientID, actorID, refID int64, notifType string) {
 		IsRead:      false,
 	}
 	if err := notif.Save(); err != nil {
-		log.Printf("notification insert failed: %v", err)
 		return
 	}
 
 	// Get the notification view data from database
 	viewNotif, err := models.GetViewNotificationByID(notif.ID)
 	if err != nil {
-		log.Printf("notification fetch failed: %v", err)
 		return
 	}
 
