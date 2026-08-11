@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/BatJoz21/cavejoz-go-api/hub"
-	"github.com/BatJoz21/cavejoz-go-api/utils"
+	"github.com/BatJoz21/cavejoz-go-api/models"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
@@ -20,23 +20,16 @@ var upgrader = websocket.Upgrader{
 
 func WebSocketHandler(h *hub.Hub) gin.HandlerFunc {
 	return func(context *gin.Context) {
-		// Read the token from the url query
-		authToken := context.Query("token")
-		if authToken == "" {
+		// Read the ticket from the url query
+		ticket := context.Query("ticket")
+		if ticket == "" {
 			context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Not authorize"})
 			return
 		}
 
-		// Verify the token
-		jwtToken, err := utils.VerifyToken(authToken)
-		if err != nil {
-			context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Not authorize"})
-			return
-		}
-
-		// Get user's id from token's claims
-		uID, _, _, err := utils.GetClaimsData(jwtToken)
-		if err != nil {
+		// Get user's id from consuming ticket
+		uID, ok := models.ConsumeWSTicket(ticket)
+		if !ok {
 			context.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "Not authorize"})
 			return
 		}

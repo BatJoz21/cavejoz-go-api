@@ -74,10 +74,12 @@ func markReadNotification(context *gin.Context) {
 }
 
 func NotifyandPush(recipientID, actorID, refID int64, notifType string) {
+	// Check if actor and recipient is the same user
 	if recipientID == actorID {
 		return
 	}
 
+	// Save notification data in the database
 	notif := models.Notification{
 		RecipientID: recipientID,
 		ActorID:     actorID,
@@ -90,12 +92,14 @@ func NotifyandPush(recipientID, actorID, refID int64, notifType string) {
 		return
 	}
 
+	// Get the notification view data from database
 	viewNotif, err := models.GetViewNotificationByID(notif.ID)
 	if err != nil {
 		log.Printf("notification fetch failed: %v", err)
 		return
 	}
 
+	// Using web socket send it in JSON format
 	appHub.Send(recipientID, gin.H{
 		"type":         "notification",
 		"notification": viewNotif,

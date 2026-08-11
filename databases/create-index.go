@@ -42,4 +42,10 @@ func createIndexOnTable() {
 	if err != nil {
 		panic("Failed to create index on notifications table: " + err.Error())
 	}
+
+	wsticketsIndex := `CREATE INDEX IF NOT EXISTS ws_tickets_index ON ws_tickets (ticket, expire_at)`
+	_, err = DB.Exec(wsticketsIndex)
+	if err != nil {
+		panic("Failed to create index on ws_tickets table: " + err.Error())
+	}
 }

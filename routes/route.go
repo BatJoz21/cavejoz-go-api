@@ -19,10 +19,13 @@ func RegisteredRoutes(server *gin.Engine, h *hub.Hub) {
 	server.POST("/refresh", refreshAccessToken)
 	server.POST("/logout", logout)
 
-	server.GET("/api/v1/ws", WebSocketHandler(appHub))
+	server.GET("/goapi/ws", WebSocketHandler(appHub))
 
 	authGroup := server.Group("")
 	authGroup.Use(middlewares.Authenticate)
+
+	authGroup.GET("/ws-ticket", getNewWSTicket)
+
 	authGroup.GET("/profile", getMyUserProfile)
 	authGroup.PUT("/profile", updateUserProfile)
 	authGroup.GET("/profile/:username", getUserProfile)

@@ -159,4 +159,22 @@ func createTables() {
 	if err != nil {
 		panic("Failed to create notifications table: " + err.Error())
 	}
+
+	wsTicketsTable := `CREATE TABLE IF NOT EXISTS ws_tickets(
+		id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+		ticket VARCHAR(64) NOT NULL UNIQUE,
+		user_id BIGINT UNSIGNED,
+		expire_at DATETIME NOT NULL,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+		CONSTRAINT ws_usr_id_fk
+			FOREIGN KEY(user_id)
+			REFERENCES users (id)
+			ON DELETE CASCADE
+			ON UPDATE CASCADE
+	)`
+	_, err = DB.Exec(wsTicketsTable)
+	if err != nil {
+		panic("Failed to create ws_tickets table: " + err.Error())
+	}
 }
