@@ -131,7 +131,10 @@ func acceptFriendRequest(context *gin.Context) {
 	}
 	NotifyandPush(reqID, context.GetInt64("uID"), id, "friend_accept")
 
-	context.JSON(http.StatusOK, gin.H{"message": "Friend request accepted"})
+	context.JSON(http.StatusOK, gin.H{
+		"message":   "Friend request accepted",
+		"reqID":     reqID,
+	})
 }
 
 func getFriendsList(context *gin.Context) {
