@@ -116,6 +116,12 @@ func getConversation(context *gin.Context) {
 	}
 	uID := context.GetInt64("uID")
 
+	// Check conversation ownership
+	if !models.IsConversationMember(cID, uID) {
+		context.JSON(http.StatusNotFound, gin.H{"message": "Conversation not found"})
+		return
+	}
+
 	// Get conversation data from database
 	c, err := models.GetConversation(cID, uID)
 	// Check if result is empty
@@ -125,12 +131,6 @@ func getConversation(context *gin.Context) {
 	}
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
-	}
-
-	// Check conversation ownership
-	if c.UserAID != uID && c.UserBID != uID {
-		context.JSON(http.StatusNotFound, gin.H{"message": "Conversation not found"})
 		return
 	}
 
@@ -159,4 +159,30 @@ func getConversation(context *gin.Context) {
 		"messages":     msgs,
 		"next_cursor":  nextCursor,
 	})
+}
+
+func updateReadRecordOnConversation(context *gin.Context) {
+	cID, err := strconv.ParseInt(context.Param("cID"), 10, 64)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+	uID := context.GetInt64("uID")
+
+	uPos, err := models.CheckUserPositionInConversation(cID, uID)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	} else if uPos == "" {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid user"})
+		return
+	}
+
+	err = models.SetReadMessage(cID, uID, uPos)
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Data updated"})
 }

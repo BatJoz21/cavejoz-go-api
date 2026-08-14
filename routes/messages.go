@@ -1,8 +1,11 @@
 package routes
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/BatJoz21/cavejoz-go-api/models"
 	"github.com/gin-gonic/gin"
@@ -12,14 +15,20 @@ func sendMessage(context *gin.Context) {
 	// Get conversation id from url parameter
 	cID, err := strconv.ParseInt(context.Param("cID"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": "DM not exists"})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Conversation not exists"})
 		return
 	}
 
 	// Get user's input
 	var dto models.SendMessageDTO
 	if err := context.ShouldBindBodyWithJSON(&dto); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid input"})
+		return
+	}
+
+	// Check if message's content is an empty string
+	if strings.TrimSpace(dto.Content) == "" {
+		context.JSON(http.StatusNoContent, gin.H{"message": "No message"})
 		return
 	}
 
@@ -27,12 +36,42 @@ func sendMessage(context *gin.Context) {
 	m := models.Message{
 		ConversationID: cID,
 		SenderID:       context.GetInt64("uID"),
-		Content:        dto.Content,
+		Content:        strings.TrimRight(dto.Content, " \t\n\r"),
 	}
 	if err := m.Save(); err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to send message"})
 		return
 	}
 
 	context.JSON(http.StatusOK, gin.H{"message": "Message has been sent"})
+}
+
+func getConversationMessage(context *gin.Context) {
+	// Get conversation id from url parameter
+	cID, err := strconv.ParseInt(context.Param("cID"), 10, 64)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Get cursor value from url query
+	cursor, err := strconv.ParseInt(context.DefaultQuery("cursor", "0"), 10, 64)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Get messages from database
+	msgs, err := models.GetMessagesByConversationID(cID, cursor)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			context.JSON(http.StatusOK, msgs)
+			return
+		} else {
+			context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			return
+		}
+	}
+
+	context.JSON(http.StatusOK, msgs)
 }

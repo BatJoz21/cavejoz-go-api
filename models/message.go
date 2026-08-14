@@ -36,12 +36,13 @@ func (m *Message) Save() error {
 func GetMessagesByConversationID(cID, cursor int64) (*[]Message, error) {
 	query := `SELECT
 		id,
+		conversation_id,
 		sender_id,
 		content,
 		created_at
 	FROM messages
 	WHERE conversation_id = ? AND (? = 0 OR id < ?)
-	ORDER BY id DESC LIMIT ?`
+	ORDER BY id ASC LIMIT ?`
 	rows, err := databases.DB.Query(query, cID, cursor, cursor, MAX_SHOWN_MESSAGE)
 	if err != nil {
 		return nil, err
@@ -51,7 +52,7 @@ func GetMessagesByConversationID(cID, cursor int64) (*[]Message, error) {
 	var msgs []Message
 	for rows.Next() {
 		var msg Message
-		if err := rows.Scan(&msg.ID, &msg.SenderID, &msg.Content, &msg.CreatedAt); err != nil {
+		if err := rows.Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Content, &msg.CreatedAt); err != nil {
 			return nil, err
 		}
 
@@ -63,4 +64,23 @@ func GetMessagesByConversationID(cID, cursor int64) (*[]Message, error) {
 	}
 
 	return &msgs, nil
+}
+
+func GetMessageByID(mID int64) (*Message, error) {
+	query := `SELECT
+		id,
+		conversation_id,
+		sender_id,
+		content,
+		created_at
+	FROM messages
+	WHERE id = ?`
+
+	var m Message
+	err := databases.DB.QueryRow(query, mID).Scan(&m.ID, &m.ConversationID, &m.SenderID, &m.Content, &m.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return &m, nil
 }

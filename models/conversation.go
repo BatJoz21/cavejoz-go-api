@@ -62,9 +62,9 @@ func GetConversationIDByUserIDs(aID, bID int64) (int64, error) {
 	return cID, nil
 }
 
-func CheckIfUsersConversationOwner(id, aID, bID int64) bool {
-	query := `SELECT EXISTS(SELECT id FROM conversations WHERE id = ? AND user_a_id = ? AND user_b_id = ? LIMIT 1)`
-	row := databases.DB.QueryRow(query, id, aID, bID)
+func IsConversationMember(cID, uID int64) bool {
+	query := `SELECT EXISTS(SELECT 1 FROM conversations WHERE id = ? AND (user_a_id = ? OR user_b_id = ?))`
+	row := databases.DB.QueryRow(query, cID, uID, uID)
 
 	var res int
 	if err := row.Scan(&res); err != nil {
@@ -72,6 +72,39 @@ func CheckIfUsersConversationOwner(id, aID, bID int64) bool {
 	}
 
 	return res == 1
+}
+
+func GetOtherConversationParticipant(cID, uID int64) (int64, error) {
+	query := `SELECT 
+	CASE 
+		WHEN user_a_id = ? THEN user_b_id ELSE user_a_id 
+	END FROM conversations WHERE id = ? AND (user_a_id = ? OR user_b_id = ?)`
+	row := databases.DB.QueryRow(query, uID, cID, uID, uID)
+
+	var otherID int64
+	err := row.Scan(&otherID)
+	if err != nil {
+		return 0, err
+	}
+
+	return otherID, nil
+}
+
+func CheckUserPositionInConversation(cID, uID int64) (string, error) {
+	query := `SELECT
+	CASE
+		WHEN user_a_id = ? THEN "a"
+		ELSE "b"
+	END
+	FROM conversations WHERE id = ?`
+
+	var pos string
+	err := databases.DB.QueryRow(query, uID, cID).Scan(&pos)
+	if err != nil {
+		return "", err
+	}
+
+	return pos, nil
 }
 
 func GetConversationsByUID(uID int64, offset int) (*[]ViewConversationDTO, error) {
@@ -185,4 +218,31 @@ func CheckIfConversationHasUnreadByUID(uID, cID int64) (bool, error) {
 	} else {
 		return true, nil
 	}
+}
+
+func SetReadMessage(cID, uID int64, position string) error {
+	query := `UPDATE conversations SET`
+	switch position {
+	case "a":
+		query += ` user_a_last_read_id =`
+	case "b":
+		query += ` user_b_last_read_id =`
+	default:
+		return errors.New("Invalid user")
+	}
+
+	query += ` (SELECT COALESCE(MAX(id), 0) FROM messages WHERE conversation_id = ? AND sender_id != ?)
+	WHERE id = ?`
+	stmt, err := databases.DB.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.Exec(cID, uID, cID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
