@@ -93,13 +93,13 @@ func GetOtherConversationParticipant(cID, uID int64) (int64, error) {
 func CheckUserPositionInConversation(cID, uID int64) (string, error) {
 	query := `SELECT
 	CASE
-		WHEN user_a_id = ? THEN "a"
-		ELSE "b"
+		WHEN user_a_id = ? THEN 'a'
+		ELSE 'b'
 	END
-	FROM conversations WHERE id = ?`
+	FROM conversations WHERE id = ? AND (user_a_id = ? OR user_b_id = ?)`
 
 	var pos string
-	err := databases.DB.QueryRow(query, uID, cID).Scan(&pos)
+	err := databases.DB.QueryRow(query, uID, cID, uID, uID).Scan(&pos)
 	if err != nil {
 		return "", err
 	}
@@ -125,6 +125,7 @@ func GetConversationsByUID(uID int64, offset int) (*[]ViewConversationDTO, error
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var data []ViewConversationDTO
 	for rows.Next() {
@@ -233,13 +234,7 @@ func SetReadMessage(cID, uID int64, position string) error {
 
 	query += ` (SELECT COALESCE(MAX(id), 0) FROM messages WHERE conversation_id = ? AND sender_id != ?)
 	WHERE id = ?`
-	stmt, err := databases.DB.Prepare(query)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(cID, uID, cID)
+	_, err := databases.DB.Exec(query, cID, uID, cID)
 	if err != nil {
 		return err
 	}

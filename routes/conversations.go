@@ -92,12 +92,14 @@ func getConversations(context *gin.Context) {
 	}
 	offset := models.MAX_SHOWN_CONVERSATION * (page - 1)
 
+	// Get conversations by user's ID
 	data, err := models.GetConversationsByUID(uID, int(offset))
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to get conversations"})
 		return
 	}
 
+	// Get total conversations of a user
 	total := models.GetTotalConversationByUID(uID)
 
 	context.JSON(http.StatusOK, gin.H{
@@ -162,6 +164,7 @@ func getConversation(context *gin.Context) {
 }
 
 func updateReadRecordOnConversation(context *gin.Context) {
+	// Get conversation ID and user ID
 	cID, err := strconv.ParseInt(context.Param("cID"), 10, 64)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -169,15 +172,18 @@ func updateReadRecordOnConversation(context *gin.Context) {
 	}
 	uID := context.GetInt64("uID")
 
+	// Get user's position in conversation (user a or user b)
 	uPos, err := models.CheckUserPositionInConversation(cID, uID)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	} else if uPos == "" {
+		// If not a member, return an error
 		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid user"})
 		return
 	}
 
+	// Updated read messages data
 	err = models.SetReadMessage(cID, uID, uPos)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
