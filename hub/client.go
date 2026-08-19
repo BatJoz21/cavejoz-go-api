@@ -1,6 +1,7 @@
 package hub
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -49,12 +50,13 @@ func (c *Client) WritePump() {
 	}
 }
 
-func (c *Client) ReadPump(h *Hub) {
+func (c *Client) ReadPump(h *Hub, onMessage func(uID int64, msgType string, raw []byte)) {
 	defer func() {
 		h.Remove(c.UserID, c)
 		c.Conn.Close()
 	}()
 
+	c.Conn.SetReadLimit(4096)
 	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.Conn.SetPongHandler(func(string) error {
 		c.Conn.SetReadDeadline(time.Now().Add(pongWait))
@@ -62,13 +64,25 @@ func (c *Client) ReadPump(h *Hub) {
 	})
 
 	for {
-		if _, _, err := c.Conn.ReadMessage(); err != nil {
+		_, raw, err := c.Conn.ReadMessage()
+		if err != nil {
 			if websocket.IsUnexpectedCloseError(err,
 				websocket.CloseGoingAway,
 				websocket.CloseNormalClosure,
 				websocket.CloseNoStatusReceived) {
 			}
 			break
+		}
+
+		var envelope struct {
+			Type string `json:"type"`
+		}
+		if err := json.Unmarshal(raw, &envelope); err != nil {
+			continue
+		}
+
+		if onMessage != nil {
+			onMessage(c.UserID, envelope.Type, raw)
 		}
 	}
 }

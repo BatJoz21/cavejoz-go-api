@@ -48,4 +48,11 @@ func createIndexOnTable() {
 	if err != nil {
 		panic("Failed to create index on ws_tickets table: " + err.Error())
 	}
+
+	messagesIndex := `CREATE INDEX IF NOT EXISTS messages_table_index
+		ON messages (conversation_id, id)`
+	_, err = DB.Exec(messagesIndex)
+	if err != nil {
+		panic("Failed to create index on messages table: " + err.Error())
+	}
 }

@@ -177,4 +177,58 @@ func createTables() {
 	if err != nil {
 		panic("Failed to create ws_tickets table: " + err.Error())
 	}
+
+	conversationsTable := `CREATE TABLE IF NOT EXISTS conversations(
+		id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+		user_a_id BIGINT UNSIGNED,
+		user_b_id BIGINT UNSIGNED,
+		user_a_last_read_id BIGINT UNSIGNED DEFAULT 0,
+		user_b_last_read_id BIGINT UNSIGNED DEFAULT 0,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+		CONSTRAINT cn_usr_a_id_fk
+			FOREIGN KEY(user_a_id)
+			REFERENCES users (id)
+			ON DELETE CASCADE
+			ON UPDATE CASCADE,
+
+		CONSTRAINT cn_usr_b_id_fk
+			FOREIGN KEY(user_b_id)
+			REFERENCES users (id)
+			ON DELETE CASCADE
+			ON UPDATE CASCADE,
+
+		CONSTRAINT cn_unq_member UNIQUE (user_a_id, user_b_id),
+
+		CONSTRAINT cn_chk_order CHECK (user_a_id < user_b_id)
+	)`
+	_, err = DB.Exec(conversationsTable)
+	if err != nil {
+		panic("Failed to create conversations table: " + err.Error())
+	}
+
+	messagesTable := `CREATE TABLE IF NOT EXISTS messages(
+		id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+		conversation_id BIGINT UNSIGNED,
+		sender_id BIGINT UNSIGNED,
+		content TEXT NOT NULL,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+		CONSTRAINT msg_conv_id_fk
+			FOREIGN KEY(conversation_id)
+			REFERENCES conversations (id)
+			ON DELETE CASCADE
+			ON UPDATE CASCADE,
+
+		CONSTRAINT msg_snd_id_fk
+			FOREIGN KEY(sender_id)
+			REFERENCES users (id)
+			ON DELETE CASCADE
+			ON UPDATE CASCADE
+	)`
+	_, err = DB.Exec(messagesTable)
+	if err != nil {
+		panic("Failed to create conversations table: " + err.Error())
+	}
 }

@@ -1,7 +1,9 @@
 package routes
 
 import (
+	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/BatJoz21/cavejoz-go-api/hub"
 	"github.com/BatJoz21/cavejoz-go-api/models"
@@ -44,6 +46,61 @@ func WebSocketHandler(h *hub.Hub) gin.HandlerFunc {
 		h.Add(uID, client)
 
 		go client.WritePump()
-		client.ReadPump(h)
+		client.ReadPump(h, handleSocketMessage)
 	}
+}
+
+func handleSocketMessage(uID int64, msgType string, raw []byte) {
+	switch msgType {
+	case "send_message":
+		handleSendMessage(uID, raw)
+	case "typing":
+		handleTyping(uID, raw)
+	default:
+	}
+}
+
+func handleSendMessage(uID int64, raw []byte) {
+	var p models.SendMessagePayload
+	if err := json.Unmarshal(raw, &p); err != nil {
+		return
+	}
+
+	content := strings.TrimSpace(p.Content)
+	if content == "" || len(content) > 2000 {
+		return
+	}
+	if p.ConversationID == 0 {
+		return
+	}
+
+	// Authorize + get recipient in one query
+	recipientID, err := models.GetOtherConversationParticipant(p.ConversationID, uID)
+	if err != nil {
+		return
+	}
+
+	// Insert
+	msg := models.Message{
+		ConversationID: p.ConversationID,
+		SenderID:       uID,
+		Content:        p.Content,
+	}
+	if err := msg.Save(); err != nil {
+		return
+	}
+
+	// Re-fetch so the payload matches the REST shape exactly
+	viewMsg, err := models.GetMessageByID(msg.ID)
+	if err != nil {
+		return
+	}
+
+	payLoad := gin.H{
+		"type":    "message",
+		"message": viewMsg,
+	}
+
+	appHub.Send(recipientID, payLoad)
+	appHub.Send(uID, payLoad)
 }

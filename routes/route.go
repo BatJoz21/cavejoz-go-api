@@ -61,6 +61,14 @@ func RegisteredRoutes(server *gin.Engine, h *hub.Hub) {
 	authGroup.PUT("/notifications/markAllRead", markAllNotificationRead)
 	authGroup.PUT("/notifications/:notifID", markReadNotification)
 
+	authGroup.POST("/dm", createChatRoom)
+	authGroup.GET("/dm", getConversations)
+	authGroup.GET("/dmID", getConversationID)
+	authGroup.GET("/dm/:cID", getConversation)
+	authGroup.GET("/dm/:cID/message", getConversationMessage)
+	authGroup.POST("/dm/:cID/message", sendMessage)
+	authGroup.PUT("/dm/:cID/read", updateReadRecordOnConversation)
+
 	authGroup.GET("/users/posts/:uID", getAllPostsOfAUser)
 	authGroup.GET("/users/posts/:uID/total", getTotalUserPost)
 }
