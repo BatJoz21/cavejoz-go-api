@@ -78,6 +78,20 @@ func blockAUser(context *gin.Context) {
 		friendship.ID = id
 	}
 
+	// Get friendship members
+	idA, idB, err := models.GetFriendshipMembers(friendship.ID)
+	if err != nil {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Delete conversation if exists
+	err = models.DeleteConversationByMemberIDs(min(idA, idB), max(idA, idB))
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
 	// Update stored friendship status to blocked at the database
 	err = models.UpdateFriendshipStatusToBlocked(friendship.ID)
 	if err != nil {
@@ -132,8 +146,8 @@ func acceptFriendRequest(context *gin.Context) {
 	NotifyandPush(reqID, context.GetInt64("uID"), id, "friend_accept")
 
 	context.JSON(http.StatusOK, gin.H{
-		"message":   "Friend request accepted",
-		"reqID":     reqID,
+		"message": "Friend request accepted",
+		"reqID":   reqID,
 	})
 }
 
@@ -225,6 +239,20 @@ func deleteOrRejectFriendship(context *gin.Context) {
 	id, err := strconv.ParseInt(context.Param("frId"), 10, 64)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Get friendship members
+	idA, idB, err := models.GetFriendshipMembers(id)
+	if err != nil {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Delete conversation if exists
+	err = models.DeleteConversationByMemberIDs(min(idA, idB), max(idA, idB))
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
 

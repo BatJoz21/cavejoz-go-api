@@ -223,6 +223,18 @@ func IsFriendshipDataExists(uID, targetUID int64) (bool, int64) {
 	return false, 0
 }
 
+func GetFriendshipMembers(frID int64) (int64, int64, error) {
+	query := `SELECT requester_id, addressee_id FROM friendships WHERE id = ?`
+
+	var uIDA, uIDB int64
+	err := databases.DB.QueryRow(query, frID).Scan(&uIDA, &uIDB)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return uIDA, uIDB, nil
+}
+
 func IsFriend(uID, targetUID int64) bool {
 	query := `SELECT f.id
 	FROM friendships f

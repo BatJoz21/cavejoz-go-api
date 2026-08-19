@@ -1,6 +1,8 @@
 package models
 
 import (
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/BatJoz21/cavejoz-go-api/databases"
@@ -83,4 +85,27 @@ func GetMessageByID(mID int64) (*Message, error) {
 	}
 
 	return &m, nil
+}
+
+func GetTotalMessagesByConversationID(cID int64) (int, bool) {
+	query := `SELECT COUNT(*) FROM messages WHERE conversation_id = ?`
+
+	var total int
+	err := databases.DB.QueryRow(query, cID).Scan(&total)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, true
+		} else {
+			return 0, false
+		}
+	}
+
+	return total, true
+}
+
+func DeleteMessagesByConversationID(cID int64) error {
+	query := `DELETE FROM messages WHERE conversation_id = ?`
+	_, err := databases.DB.Exec(query, cID)
+
+	return err
 }
