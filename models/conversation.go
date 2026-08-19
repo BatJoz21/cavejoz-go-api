@@ -241,3 +241,35 @@ func SetReadMessage(cID, uID int64, position string) error {
 
 	return nil
 }
+
+func DeleteConversationByMemberIDs(aID, bID int64) error {
+	// Get conversation ID
+	cID, err := GetConversationIDByUserIDs(aID, bID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		} else {
+			return err
+		}
+	}
+
+	// Delete all messages if exists
+	total, ok := GetTotalMessagesByConversationID(cID)
+	if !ok {
+		return errors.New("Failed to get total message")
+	}
+	if total > 0 {
+		if err := DeleteMessagesByConversationID(cID); err != nil {
+			return err
+		}
+	}
+
+	// Delete the conversation
+	query := `DELETE FROM conversations WHERE id = ?`
+	_, err = databases.DB.Exec(query, cID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
