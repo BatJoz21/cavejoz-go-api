@@ -59,6 +59,8 @@ func handleSocketMessage(uID int64, msgType string, raw []byte) {
 	switch msgType {
 	case "send_message":
 		handleSendMessage(uID, raw)
+	case "typing":
+		handleTyping(uID, raw)
 	default:
 		log.Printf("unknown frame type %q from user %d", msgType, uID)
 	}

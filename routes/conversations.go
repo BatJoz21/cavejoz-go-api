@@ -145,13 +145,16 @@ func getConversation(context *gin.Context) {
 
 	// Get all messages data
 	msgs, err := models.GetMessagesByConversationID(c.ID, cursor)
-	if err != nil {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
 
 	// Get next cursor value
-	nextCursor := (*msgs)[len(*msgs)-1].ID
+	nextCursor := int64(0)
+	if len(*msgs) == models.MAX_SHOWN_CONVERSATION {
+		nextCursor = (*msgs)[len(*msgs)-1].ID
+	}
 
 	context.JSON(http.StatusOK, gin.H{
 		"conversation": c,
