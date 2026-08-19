@@ -151,10 +151,7 @@ func getConversation(context *gin.Context) {
 	}
 
 	// Get next cursor value
-	nextCursor := int64(0)
-	if len(*msgs) == models.MAX_SHOWN_MESSAGE {
-		nextCursor = (*msgs)[len(*msgs)-1].ID
-	}
+	nextCursor := (*msgs)[len(*msgs)-1].ID
 
 	context.JSON(http.StatusOK, gin.H{
 		"conversation": c,

@@ -14,7 +14,7 @@ type Message struct {
 	CreatedAt      time.Time `json:"created_at"`
 }
 
-const MAX_SHOWN_MESSAGE = 20
+const MAX_SHOWN_MESSAGE = 9
 
 func (m *Message) Save() error {
 	query := `INSERT INTO messages(conversation_id, sender_id, content) VALUES (?, ?, ?)`
@@ -42,7 +42,7 @@ func GetMessagesByConversationID(cID, cursor int64) (*[]Message, error) {
 		created_at
 	FROM messages
 	WHERE conversation_id = ? AND (? = 0 OR id < ?)
-	ORDER BY id ASC LIMIT ?`
+	ORDER BY id DESC LIMIT ?`
 	rows, err := databases.DB.Query(query, cID, cursor, cursor, MAX_SHOWN_MESSAGE)
 	if err != nil {
 		return nil, err

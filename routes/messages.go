@@ -73,5 +73,17 @@ func getConversationMessage(context *gin.Context) {
 		}
 	}
 
-	context.JSON(http.StatusOK, msgs)
+	nextCursor := int64(0)
+	if len(*msgs) == models.MAX_SHOWN_MESSAGE {
+		nextCursor = (*msgs)[len(*msgs)-1].ID
+	}
+
+	for i, j := 0, len(*msgs)-1; i < j; i, j = i+1, j-1 {
+		(*msgs)[i], (*msgs)[j] = (*msgs)[j], (*msgs)[i]
+	}
+
+	context.JSON(http.StatusOK, gin.H{
+		"messages":    msgs,
+		"next_cursor": nextCursor,
+	})
 }
