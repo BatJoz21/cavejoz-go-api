@@ -90,6 +90,9 @@ func getConversations(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid page"})
 		return
 	}
+	if page < 1 {
+		page = 1
+	}
 	offset := models.MAX_SHOWN_CONVERSATION * (page - 1)
 
 	// Get conversations by user's ID

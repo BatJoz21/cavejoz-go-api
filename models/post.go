@@ -201,6 +201,18 @@ func GetPostOwnerID(postID int64) (int64, error) {
 	return userID, nil
 }
 
+func GetPostIDByContentUrl(contentUrl string) (int64, error) {
+	query := `SELECT id FROM posts WHERE content_url = ?`
+
+	var pID int64
+	err := databases.DB.QueryRow(query, contentUrl).Scan(&pID)
+	if err != nil {
+		return 0, err
+	}
+
+	return pID, nil
+}
+
 func GetPostVisibility(postID int64) (*string, int64, error) {
 	query := `SELECT user_id, visibility FROM posts WHERE id = ?`
 	row := databases.DB.QueryRow(query, postID)

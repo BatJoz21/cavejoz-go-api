@@ -3,6 +3,7 @@ package routes
 import (
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/BatJoz21/cavejoz-go-api/models"
 	"github.com/BatJoz21/cavejoz-go-api/utils"
@@ -34,6 +35,12 @@ func getUserAvatar(context *gin.Context) {
 	// Get filename from param
 	filename := context.Param("filename")
 
+	// Check filename
+	if filename != filepath.Base(filename) {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid filename"})
+		return
+	}
+
 	// Get avatar url
 	avatarUrl := utils.GetAvatarPath(&filename)
 
@@ -53,7 +60,13 @@ func updateUserProfile(context *gin.Context) {
 
 	// Get user's input
 	if context.PostForm("username") != "" {
-		user.Username = context.PostForm("username")
+		username := context.PostForm("username")
+		if !UsernameRegex.MatchString(username) {
+			context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid username format. Must be 3-30 alphanumeric characters or underscores."})
+			return
+		}
+
+		user.Username = username
 	}
 	if context.PostForm("full_name") != "" {
 		user.FullName = context.PostForm("full_name")
@@ -65,7 +78,7 @@ func updateUserProfile(context *gin.Context) {
 	file, err := context.FormFile("avatar")
 	if err == nil {
 		// Save new avatar
-		avatar, err := utils.SaveAvatar(file, user.Username, context)
+		avatar, err := utils.SaveAvatar(file, context)
 		if err != nil {
 			context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 			return
@@ -101,7 +114,7 @@ func getMyUserData(context *gin.Context) *models.User {
 	// Get profile data from database
 	user, err := models.GetUserDataForOps(uID)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return nil
 	}
 

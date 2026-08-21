@@ -14,10 +14,20 @@ func RegisteredRoutes(server *gin.Engine, h *hub.Hub) {
 		panic("hub not initialized")
 	}
 
-	server.POST("/register", registerNewUser)
-	server.POST("/login", login)
-	server.POST("/refresh", refreshAccessToken)
-	server.POST("/logout", logout)
+	// The unauthenticated endpoints each get their own rate-limit budget.
+	server.POST("/register",
+		middlewares.RateLimitIP(middlewares.RegisterMax, middlewares.RegisterWindow),
+		registerNewUser)
+	server.POST("/login",
+		middlewares.RateLimitIP(middlewares.LoginIPMax, middlewares.LoginIPWindow),
+		middlewares.ThrottleLoginByAccount(middlewares.LoginAccountMax, middlewares.LoginAccountWindow),
+		login)
+	server.POST("/refresh",
+		middlewares.RateLimitIP(middlewares.SessionMax, middlewares.SessionWindow),
+		refreshAccessToken)
+	server.POST("/logout",
+		middlewares.RateLimitIP(middlewares.SessionMax, middlewares.SessionWindow),
+		logout)
 
 	server.GET("/goapi/ws", WebSocketHandler(appHub))
 

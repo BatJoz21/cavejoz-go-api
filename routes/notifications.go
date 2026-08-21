@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"database/sql"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -59,6 +61,15 @@ func markReadNotification(context *gin.Context) {
 
 	// Get the notification by id
 	n, err := models.GetNotificationByID(notifID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			context.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+			return
+		} else {
+			context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			return
+		}
+	}
 
 	// Update the notification's is_read value
 	err = n.UpdateIsRead(1)

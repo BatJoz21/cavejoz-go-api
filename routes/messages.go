@@ -19,6 +19,18 @@ func sendMessage(context *gin.Context) {
 		return
 	}
 
+	// Check conversation membership
+	senderID := context.GetInt64("uID")
+	if !models.IsConversationMember(cID, senderID) {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorize access"})
+		return
+	}
+	_, err = models.GetOtherConversationParticipant(cID, senderID)
+	if err != nil {
+		context.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+		return
+	}
+
 	// Get user's input
 	var dto models.SendMessageDTO
 	if err := context.ShouldBindBodyWithJSON(&dto); err != nil {
@@ -35,7 +47,7 @@ func sendMessage(context *gin.Context) {
 	// Save the message to database
 	m := models.Message{
 		ConversationID: cID,
-		SenderID:       context.GetInt64("uID"),
+		SenderID:       senderID,
 		Content:        strings.TrimRight(dto.Content, " \t\n\r"),
 	}
 	if err := m.Save(); err != nil {
@@ -51,6 +63,12 @@ func getConversationMessage(context *gin.Context) {
 	cID, err := strconv.ParseInt(context.Param("cID"), 10, 64)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Check conversation ownership
+	if !models.IsConversationMember(cID, context.GetInt64("uID")) {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorize access"})
 		return
 	}
 

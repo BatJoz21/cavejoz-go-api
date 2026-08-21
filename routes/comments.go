@@ -9,16 +9,23 @@ import (
 )
 
 func createNewComment(context *gin.Context) {
-	// Get user's input
-	var dto models.NewCommentDTO
-	err := context.ShouldBindBodyWithJSON(&dto)
+	// Get post's ID and user's id
+	postID, err := strconv.ParseInt(context.Param("postID"), 10, 64)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
+	uID := context.GetInt64("uID")
 
-	// Get post's ID
-	postID, err := strconv.ParseInt(context.Param("postID"), 10, 64)
+	// Check if user is authorize to comment the post
+	if !canViewPost(postID, uID) {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorize access"})
+		return
+	}
+
+	// Get user's input
+	var dto models.NewCommentDTO
+	err = context.ShouldBindBodyWithJSON(&dto)
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
@@ -27,7 +34,7 @@ func createNewComment(context *gin.Context) {
 	// Create struct
 	comment := models.Comment{
 		PostID:  postID,
-		UserID:  context.GetInt64("uID"),
+		UserID:  uID,
 		Content: dto.Content,
 	}
 
@@ -57,11 +64,20 @@ func getAllCommentOfAPost(context *gin.Context) {
 		return
 	}
 
+	// Check if user is authorize to view post's comment
+	if !canViewPost(postID, context.GetInt64("uID")) {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorize access"})
+		return
+	}
+
 	// Get page number
 	page, err := strconv.Atoi(context.DefaultQuery("page", "1"))
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
+	}
+	if page < 1 {
+		page = 1
 	}
 	offset := models.COMMENT_LIMIT_PER_PAGE * (page - 1)
 
@@ -86,17 +102,14 @@ func deleteComment(context *gin.Context) {
 		return
 	}
 
-	// Search comment data in the database
-	c, err := models.GetCommentByID(id)
+	// Delete data from database
+	count, err := models.DeleteCommentByID(id, context.GetInt64("uID"))
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
-
-	// Delete data from database
-	err = c.Delete()
-	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+	if count < 1 {
+		context.JSON(http.StatusNotFound, gin.H{"message": "No rows affected"})
 		return
 	}
 

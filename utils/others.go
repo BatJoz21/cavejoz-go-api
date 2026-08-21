@@ -12,6 +12,9 @@ func GetOffsetForPagination(max int, context *gin.Context) int {
 	if err != nil {
 		return 0
 	}
+	if page < 1 {
+		page = 1
+	}
 
 	// Count offset
 	offset := max * (page - 1)

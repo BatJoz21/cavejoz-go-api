@@ -136,6 +136,7 @@ func GetViewNotificationByID(id int64) (*ViewNotifDTO, error) {
 func GetNotificationByID(notifID int64) (*Notification, error) {
 	query := `SELECT
 		n.id,
+		n.recipient_id,
 		n.actor_id,
 		n.type,
 		n.reference_id,
@@ -145,7 +146,7 @@ func GetNotificationByID(notifID int64) (*Notification, error) {
 	row := databases.DB.QueryRow(query, notifID)
 
 	var n Notification
-	err := row.Scan(&n.ID, &n.ActorID, &n.Type, &n.ReferenceID, &n.IsRead, &n.CreatedAt)
+	err := row.Scan(&n.ID, &n.RecipientID, &n.ActorID, &n.Type, &n.ReferenceID, &n.IsRead, &n.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -154,14 +155,14 @@ func GetNotificationByID(notifID int64) (*Notification, error) {
 }
 
 func (n *Notification) UpdateIsRead(isRead int) error {
-	query := `UPDATE notifications SET is_read = ? WHERE id = ?`
+	query := `UPDATE notifications SET is_read = ? WHERE id = ? AND recipient_id = ?`
 	stmt, err := databases.DB.Prepare(query)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
-	_, err = stmt.Exec(isRead, n.ID)
+	_, err = stmt.Exec(isRead, n.ID, n.RecipientID)
 	if err != nil {
 		return err
 	}

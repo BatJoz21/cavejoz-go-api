@@ -257,7 +257,7 @@ func deleteOrRejectFriendship(context *gin.Context) {
 	}
 
 	// Remove friendship data from database
-	err = models.DeleteFriendship(id)
+	err = models.DeleteFriendship(id, context.GetInt64("uID"))
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return

@@ -1,7 +1,10 @@
 package routes
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/BatJoz21/cavejoz-go-api/models"
@@ -17,7 +20,7 @@ func createPost(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"message": "No content"})
 		return
 	}
-	content, err = utils.SavePostContent(file, context.GetInt64("uID"), context)
+	content, err = utils.SavePostContent(file, context)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
@@ -99,21 +102,9 @@ func viewAPost(context *gin.Context) {
 	}
 
 	// Check post's visibility
-	vis, postUID, err := models.GetPostVisibility(id)
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+	if !canViewPost(id, context.GetInt64("uID")) {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not authorize"})
 		return
-	}
-
-	// Check if user is owner or not
-	if context.GetInt64("uID") != postUID {
-		// Check if user is friend with post owner
-		if *vis == "friends" {
-			if !models.IsFriend(context.GetInt64("uID"), postUID) {
-				context.JSON(http.StatusUnauthorized, gin.H{"message": "Not authorize"})
-				return
-			}
-		}
 	}
 
 	// Get post data from database
@@ -129,6 +120,28 @@ func viewAPost(context *gin.Context) {
 func getPostContentImage(context *gin.Context) {
 	// Get the filename
 	filename := context.Param("filename")
+
+	// Check filename
+	if filename != filepath.Base(filename) {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid filename"})
+		return
+	}
+
+	// Check if user can access this post image
+	postID, err := models.GetPostIDByContentUrl(filename)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			context.JSON(http.StatusNotFound, gin.H{"message": "Image not found"})
+			return
+		} else {
+			context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			return
+		}
+	}
+	if !canViewPost(postID, context.GetInt64("uID")) {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorize access"})
+		return
+	}
 
 	// Get content image url
 	contentUrl := utils.GetImageContentPath(&filename)
@@ -155,6 +168,25 @@ func getTotalUserPost(context *gin.Context) {
 	context.JSON(http.StatusOK, total)
 }
 
+func canViewPost(postID, uID int64) bool {
+	// Check post visibility
+	vis, pUID, err := models.GetPostVisibility(postID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false
+		} else {
+			return false
+		}
+	}
+
+	// Check if user is able to view, like, and comment on the post
+	if uID != pUID && *vis == "friends" && !models.IsFriend(uID, pUID) {
+		return false
+	}
+
+	return true
+}
+
 func editAPost(context *gin.Context) {
 	// Get post ID
 	id, err := strconv.ParseInt(context.Param("postID"), 10, 64)
@@ -173,7 +205,7 @@ func editAPost(context *gin.Context) {
 	// Handle post's content file upload
 	file, err := context.FormFile("content")
 	if err == nil {
-		content, err := utils.SavePostContent(file, context.GetInt64("uID"), context)
+		content, err := utils.SavePostContent(file, context)
 		if err != nil {
 			context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 			return
@@ -225,7 +257,7 @@ func deleteAPost(context *gin.Context) {
 	}
 
 	// Delete post's comment
-	err = models.DeleteAllCommentByPostID(post.ID)
+	err = models.DeleteAllCommentByPostID(post.ID, context.GetInt64("uID"))
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return

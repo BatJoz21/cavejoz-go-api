@@ -19,6 +19,12 @@ func toggleLike(context *gin.Context) {
 	}
 	like.UserID = context.GetInt64("uID")
 
+	// Check if user is authorize to like the post
+	if !canViewPost(like.PostID, like.UserID) {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorize access"})
+		return
+	}
+
 	// Check if user has liked the post
 	isExists, id := models.CheckIfLikeExists(like.PostID, like.UserID)
 	message := ""
