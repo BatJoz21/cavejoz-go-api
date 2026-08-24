@@ -1,7 +1,10 @@
 package routes
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/BatJoz21/cavejoz-go-api/models"
@@ -17,9 +20,9 @@ func createPost(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"message": "No content"})
 		return
 	}
-	content, err = utils.SavePostContent(file, context.GetInt64("uID"), context)
+	content, err = utils.SavePostContent(file, context)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to save post content"})
 		return
 	}
 
@@ -33,7 +36,7 @@ func createPost(context *gin.Context) {
 
 	// Save post in the database
 	if err := post.Save(); err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to upload post"})
 		return
 	}
 
@@ -44,7 +47,7 @@ func getPostsForFeeds(context *gin.Context) {
 	// Get friend's IDs
 	friendIDs, err := models.GetFriendsID(context.GetInt64("uID"))
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch friends"})
 		return
 	}
 
@@ -54,7 +57,7 @@ func getPostsForFeeds(context *gin.Context) {
 	// Get posts
 	posts, err := models.GetPostsForFeedByUIDs(*friendIDs, offset)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch feeds"})
 		return
 	}
 
@@ -65,7 +68,7 @@ func getAllPostsOfAUser(context *gin.Context) {
 	// Get user ID
 	id, err := strconv.ParseInt(context.Param("uID"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid uID"})
 		return
 	}
 
@@ -83,7 +86,7 @@ func getAllPostsOfAUser(context *gin.Context) {
 	// Get posts
 	posts, err := models.GetAllPostsofAUser(id, visibility, offset)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch posts"})
 		return
 	}
 
@@ -94,32 +97,20 @@ func viewAPost(context *gin.Context) {
 	// Get post ID
 	id, err := strconv.ParseInt(context.Param("postID"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid postID"})
 		return
 	}
 
 	// Check post's visibility
-	vis, postUID, err := models.GetPostVisibility(id)
-	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+	if !canViewPost(id, context.GetInt64("uID")) {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not authorize"})
 		return
-	}
-
-	// Check if user is owner or not
-	if context.GetInt64("uID") != postUID {
-		// Check if user is friend with post owner
-		if *vis == "friends" {
-			if !models.IsFriend(context.GetInt64("uID"), postUID) {
-				context.JSON(http.StatusUnauthorized, gin.H{"message": "Not authorize"})
-				return
-			}
-		}
 	}
 
 	// Get post data from database
 	post, err := models.GetPostofAUser(id)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch post"})
 		return
 	}
 
@@ -129,6 +120,28 @@ func viewAPost(context *gin.Context) {
 func getPostContentImage(context *gin.Context) {
 	// Get the filename
 	filename := context.Param("filename")
+
+	// Check filename
+	if filename != filepath.Base(filename) {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid filename"})
+		return
+	}
+
+	// Check if user can access this post image
+	postID, err := models.GetPostIDByContentUrl(filename)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			context.JSON(http.StatusNotFound, gin.H{"message": "Image not found"})
+			return
+		} else {
+			context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch image"})
+			return
+		}
+	}
+	if !canViewPost(postID, context.GetInt64("uID")) {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized access"})
+		return
+	}
 
 	// Get content image url
 	contentUrl := utils.GetImageContentPath(&filename)
@@ -141,47 +154,66 @@ func getTotalUserPost(context *gin.Context) {
 	// Get user ID
 	uID, err := strconv.ParseInt(context.Param("uID"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid uID"})
 		return
 	}
 
 	// Get the total
-	total, err := models.GetTotalPostByUID(uID)
+	total, err := models.GetTotalPostByUID(uID, models.IsFriend(context.GetInt64("uID"), uID))
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch total post"})
 		return
 	}
 
 	context.JSON(http.StatusOK, total)
 }
 
+func canViewPost(postID, uID int64) bool {
+	// Check post visibility
+	vis, pUID, err := models.GetPostVisibility(postID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false
+		} else {
+			return false
+		}
+	}
+
+	// Check if user is able to view, like, and comment on the post
+	if uID != pUID && *vis == "friends" && !models.IsFriend(uID, pUID) {
+		return false
+	}
+
+	return true
+}
+
 func editAPost(context *gin.Context) {
 	// Get post ID
 	id, err := strconv.ParseInt(context.Param("postID"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid postID"})
 		return
 	}
 
 	// Get the post data
 	post, err := models.GetPostForOperation(id, context.GetInt64("uID"))
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch post"})
 		return
 	}
 
 	// Handle post's content file upload
 	file, err := context.FormFile("content")
 	if err == nil {
-		content, err := utils.SavePostContent(file, context.GetInt64("uID"), context)
+		content, err := utils.SavePostContent(file, context)
 		if err != nil {
-			context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to save post content"})
 			return
 		}
 
 		err = utils.RemoveImage(&post.ContentUrl, "content")
 		if err != nil {
-			context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to remove old post content"})
 			return
 		}
 
@@ -195,7 +227,7 @@ func editAPost(context *gin.Context) {
 	// Update the data on the database
 	err = post.EditPost()
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to edit post"})
 		return
 	}
 
@@ -206,42 +238,42 @@ func deleteAPost(context *gin.Context) {
 	// Get post ID
 	id, err := strconv.ParseInt(context.Param("postID"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid postID"})
 		return
 	}
 
 	// Get the post data
 	post, err := models.GetPostForOperation(id, context.GetInt64("uID"))
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch post"})
 		return
 	}
 
 	// Delete post's like
 	err = models.DeleteAllLikeByPostID(post.ID)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete post's likes"})
 		return
 	}
 
 	// Delete post's comment
-	err = models.DeleteAllCommentByPostID(post.ID)
+	err = models.DeleteAllCommentByPostID(post.ID, context.GetInt64("uID"))
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete post's comments"})
 		return
 	}
 
 	// Delete post data
 	err = models.DeletePost(id, context.GetInt64("uID"))
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete post"})
 		return
 	}
 
 	// Delete post's content
 	err = utils.RemoveImage(&post.ContentUrl, "content")
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete post content"})
 		return
 	}
 

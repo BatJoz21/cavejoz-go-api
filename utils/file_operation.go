@@ -1,14 +1,14 @@
 package utils
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
-	"fmt"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,7 +31,18 @@ var imageMimeTypes = map[string]bool{
 	"image/png":  true,
 }
 
-func SaveAvatar(file *multipart.FileHeader, username string, context *gin.Context) (*string, error) {
+// randomFileStem returns an unguessable, filename-safe name with no caller
+// input in it, so an upload path can never be steered outside its directory.
+func randomFileStem() (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(b), nil
+}
+
+func SaveAvatar(file *multipart.FileHeader, context *gin.Context) (*string, error) {
 	// Verify uploaded image
 	extension, err := verifyUploadedImage(file)
 	if err != nil {
@@ -39,10 +50,16 @@ func SaveAvatar(file *multipart.FileHeader, username string, context *gin.Contex
 	}
 
 	// Create directory if not exists
-	os.MkdirAll(UploadRoots+AvatarDir, os.ModePerm)
+	if err := os.MkdirAll(UploadRoots+AvatarDir, 0o755); err != nil {
+		return nil, err
+	}
 
 	// Create image name and filepath
-	filename := fmt.Sprintf("%d_%s%s", time.Now().UnixNano(), username, extension)
+	stem, err := randomFileStem()
+	if err != nil {
+		return nil, err
+	}
+	filename := stem + extension
 	path := GetAvatarPath(&filename)
 
 	// Upload the image
@@ -55,7 +72,7 @@ func SaveAvatar(file *multipart.FileHeader, username string, context *gin.Contex
 	return &filename, nil
 }
 
-func SavePostContent(file *multipart.FileHeader, uID int64, context *gin.Context) (*string, error) {
+func SavePostContent(file *multipart.FileHeader, context *gin.Context) (*string, error) {
 	// Verify uploaded image
 	extension, err := verifyUploadedImage(file)
 	if err != nil {
@@ -63,10 +80,16 @@ func SavePostContent(file *multipart.FileHeader, uID int64, context *gin.Context
 	}
 
 	// Create directory if not exists
-	os.MkdirAll(UploadRoots+ImageContentDir, os.ModePerm)
+	if err := os.MkdirAll(UploadRoots+ImageContentDir, 0o755); err != nil {
+		return nil, err
+	}
 
 	// Create image name and filepath
-	filename := fmt.Sprintf("%d_%d_post%s", time.Now().UnixNano(), uID, extension)
+	stem, err := randomFileStem()
+	if err != nil {
+		return nil, err
+	}
+	filename := stem + extension
 	path := GetImageContentPath(&filename)
 
 	// Upload the image

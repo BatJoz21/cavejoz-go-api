@@ -97,31 +97,33 @@ func GetCommentByID(commentID int64) (*Comment, error) {
 	return &c, nil
 }
 
-func (c *Comment) Delete() error {
-	query := `DELETE FROM comments WHERE id = ?`
-	stmt, err := databases.DB.Prepare(query)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
+func DeleteCommentByID(cID, uID int64) (int64, error) {
+	query := `DELETE c FROM comments c
+	JOIN posts p ON c.user_id = p.user_id
+	WHERE c.id = ? AND (c.user_id = ? AND p.user_id = ?)`
 
-	_, err = stmt.Exec(c.ID)
+	result, err := databases.DB.Exec(query, cID, uID, uID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return nil
+	count, err := result.RowsAffected()
+	if err != nil {
+		return 0, err
+	}
+	if count < 1 {
+		return 0, nil
+	}
+
+	return count, nil
 }
 
-func DeleteAllCommentByPostID(postID int64) error {
-	query := `DELETE FROM comments WHERE post_id = ?`
-	stmt, err := databases.DB.Prepare(query)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
+func DeleteAllCommentByPostID(postID, uID int64) error {
+	query := `DELETE c FROM comments c
+	JOIN posts p ON c.user_id = p.user_id
+	WHERE c.post_id = ? AND (c.user_id = ? OR p.user_id = ?)`
 
-	_, err = stmt.Exec(postID)
+	_, err := databases.DB.Exec(query, postID, uID, uID)
 	if err != nil {
 		return err
 	}

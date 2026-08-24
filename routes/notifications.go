@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -12,7 +14,7 @@ func getAllNotification(context *gin.Context) {
 	// Get all notification data from database by user's id
 	notifs, err := models.GetNotificationsByRecipientID(context.GetInt64("uID"), 0)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch notifications"})
 		return
 	}
 
@@ -23,14 +25,14 @@ func getNotificationWithLimit(context *gin.Context) {
 	// Get limit from url parameter
 	limit, err := strconv.Atoi(context.Param("limit"))
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid limit"})
 		return
 	}
 
 	// Get limited notification data from database by user's id
 	notifs, err := models.GetNotificationsByRecipientID(context.GetInt64("uID"), limit)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch notifications"})
 		return
 	}
 
@@ -41,7 +43,7 @@ func markAllNotificationRead(context *gin.Context) {
 	// Update is_read data by user's id
 	err := models.UpdateIsReadByRecipientID(1, context.GetInt64("uID"))
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to mark all notifications read"})
 		return
 	}
 
@@ -52,17 +54,26 @@ func markReadNotification(context *gin.Context) {
 	// Get the notif id
 	notifID, err := strconv.ParseInt(context.Param("notifID"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid notifID"})
 		return
 	}
 
 	// Get the notification by id
 	n, err := models.GetNotificationByID(notifID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			context.JSON(http.StatusNotFound, gin.H{"message": "Notification not found"})
+			return
+		} else {
+			context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch notification"})
+			return
+		}
+	}
 
 	// Update the notification's is_read value
 	err = n.UpdateIsRead(1)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to mark notification read"})
 		return
 	}
 

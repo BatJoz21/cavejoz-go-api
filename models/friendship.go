@@ -243,8 +243,9 @@ func IsFriend(uID, targetUID int64) bool {
 		ELSE f.requester_id
 	END
 	WHERE
-		status = 'accepted' AND
-		(f.requester_id = ? AND f.addressee_id = ?) OR (f.requester_id = ? AND f.addressee_id = ?)`
+		status = 'accepted' AND (
+			(f.requester_id = ? AND f.addressee_id = ?) OR (f.requester_id = ? AND f.addressee_id = ?)
+	)`
 	row := databases.DB.QueryRow(query, uID, uID, targetUID, targetUID, uID)
 
 	var profile FriendProfileDTO
@@ -289,14 +290,9 @@ func UpdateFriendshipStatusToBlocked(friendshipID int64) error {
 	return nil
 }
 
-func DeleteFriendship(friendshipID int64) error {
-	query := `DELETE FROM friendships WHERE id = ?`
-	stmt, err := databases.DB.Prepare(query)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
+func DeleteFriendship(friendshipID, uID int64) error {
+	query := `DELETE FROM friendships WHERE id = ? AND (requester_id = ? OR addressee_id = ?)`
 
-	_, err = stmt.Exec(friendshipID)
+	_, err := databases.DB.Exec(query, friendshipID, uID, uID)
 	return err
 }

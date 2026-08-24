@@ -6,7 +6,7 @@ type User struct {
 	ID           int64   `json:"id"`
 	Username     string  `json:"username"`
 	Email        string  `json:"email"`
-	PasswordHash string  `json:"password_hash"`
+	PasswordHash string  `json:"-"`
 	FullName     string  `json:"full_name"`
 	Bio          *string `json:"bio"`
 	Role         string  `json:"role"`
@@ -56,19 +56,18 @@ func GetUserDataForOps(uID int64) (*User, error) {
 	return &u, nil
 }
 
-func GetUserDataByUsername(username string) (*User, error) {
+func GetUserDataByUsername(username string) (*UserProfileDTO, error) {
 	query := `SELECT
 		id,
 		username,
-		email,
 		full_name,
 		bio,
 		avatar_url
 	FROM users WHERE username = ?`
 	row := databases.DB.QueryRow(query, username)
 
-	var u User
-	err := row.Scan(&u.ID, &u.Username, &u.Email, &u.FullName, &u.Bio, &u.AvatarUrl)
+	var u UserProfileDTO
+	err := row.Scan(&u.ID, &u.Username, &u.FullName, &u.Bio, &u.AvatarUrl)
 	if err != nil {
 		return nil, err
 	}
