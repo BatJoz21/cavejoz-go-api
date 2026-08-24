@@ -22,32 +22,62 @@ func registerNewUser(context *gin.Context) {
 		avatar, err = utils.SaveAvatar(file, context)
 		if err != nil {
 			context.JSON(http.StatusBadRequest, gin.H{"isRegistered": false,
-				"message": err.Error()})
+				"message": "Failed to save user's avatar"})
 			return
 		}
 	}
 
+	// Checking email
+	email := context.PostForm("email")
+	if !utils.IsEmailValid(email) {
+		context.JSON(http.StatusBadRequest, gin.H{"isRegistered": false,
+			"message": "Invalid email address"})
+		return
+	}
+
+	// Checking password
+	password := context.PostForm("password")
+	err = utils.IsPasswordValid(password)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"isRegistered": false,
+			"message": "Invalid password: " + err.Error()})
+		return
+	}
+
 	// Hashing password
-	hashedPassword, err := utils.HashPassword(context.PostForm("password"))
+	hashedPassword, err := utils.HashPassword(password)
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"isRegistered": false,
-			"message": err.Error()})
+			"message": "Failed to hash password"})
 		return
 	}
 
 	// Checking username
 	username := context.PostForm("username")
 	if !UsernameRegex.MatchString(username) {
-		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid username format. Must be 3-30 alphanumeric characters or underscores."})
+		context.JSON(http.StatusBadRequest, gin.H{
+			"isRegistered": false,
+			"message":      "Invalid username format. Must be 3-30 alphanumeric characters or underscores.",
+		})
+		return
+	}
+
+	// Checking fullname
+	fullname := context.PostForm("full_name")
+	if !utils.IsFullNameValid(fullname) {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"isRegistered": false,
+			"message":      "Invalid full name",
+		})
 		return
 	}
 
 	// Store user's data into database
 	user := models.User{
 		Username:     username,
-		Email:        context.PostForm("email"),
+		Email:        email,
 		PasswordHash: hashedPassword,
-		FullName:     context.PostForm("full_name"),
+		FullName:     fullname,
 		Bio:          nil,
 		Role:         "user",
 		AvatarUrl:    avatar,
@@ -55,7 +85,7 @@ func registerNewUser(context *gin.Context) {
 	err = user.Save()
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"isRegistered": false,
-			"message": err.Error()})
+			"message": "Registration failed"})
 		return
 	}
 
@@ -69,33 +99,33 @@ func login(context *gin.Context) {
 	var dto models.UserLoginDTO
 	err := context.ShouldBindBodyWithJSON(&dto)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
 		return
 	}
 
 	// Validate user's input (email and password)
 	err = models.ValidateCredentials(&dto)
 	if err != nil {
-		context.JSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Log in failed"})
 		return
 	}
 
 	// Generate access token (JWT)
 	userData, err := models.GetUserDataByEmail(dto.Email)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Log in failed"})
 		return
 	}
 	accessToken, err := utils.GenerateAccessToken(userData.ID, userData.Username, userData.Role)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate token"})
 		return
 	}
 
 	// Generate refresh token and store it in the database
 	refreshToken, err := utils.GenerateRefreshToken(userData.ID)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to generate token"})
 		return
 	}
 	expire := time.Now().Add(utils.RefreshTokenTTL)
@@ -111,7 +141,7 @@ func login(context *gin.Context) {
 	}
 	err = refreshTokenObj.StoreRefreshToken()
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to store session"})
 		return
 	}
 
@@ -128,7 +158,7 @@ func refreshAccessToken(context *gin.Context) {
 	var dto models.RefreshTokenRequest
 	err := context.ShouldBindJSON(&dto)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
 		return
 	}
 
@@ -234,7 +264,7 @@ func logout(context *gin.Context) {
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{
 			"isLoggedOut": false,
-			"message":     err.Error(),
+			"message":     "Invalid request",
 		})
 		return
 	}
@@ -244,7 +274,7 @@ func logout(context *gin.Context) {
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{
 			"isLoggedOut": false,
-			"message":     err.Error(),
+			"message":     "Invalid token",
 		})
 		return
 	}
@@ -255,7 +285,7 @@ func logout(context *gin.Context) {
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{
 			"isLoggedOut": false,
-			"message":     err.Error(),
+			"message":     "Log out failed",
 		})
 		return
 	}
@@ -265,7 +295,7 @@ func logout(context *gin.Context) {
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{
 			"isLoggedOut": false,
-			"message":     err.Error(),
+			"message":     "Log out failed",
 		})
 		return
 	}

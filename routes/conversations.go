@@ -14,7 +14,7 @@ func createChatRoom(context *gin.Context) {
 	// Get both user's ids
 	frID, err := strconv.ParseInt(context.PostForm("friendID"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid friendID"})
 		return
 	}
 	uID := context.GetInt64("uID")
@@ -28,14 +28,14 @@ func createChatRoom(context *gin.Context) {
 	// Check Friendship status
 	status := models.GetFriendshipStatus(uID, frID)
 	if status != "accepted" {
-		context.JSON(http.StatusUnauthorized, gin.H{"message": "Users are not a friend"})
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Users are not friends"})
 		return
 	}
 
 	// Check if conversation is exists
 	isExists, err := models.CheckIfConversationExists(min(uID, frID), max(uID, frID))
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to check conversation availability"})
 		return
 	}
 	if isExists {
@@ -49,7 +49,7 @@ func createChatRoom(context *gin.Context) {
 		UserBID: max(uID, frID),
 	}
 	if err := cnv.Save(); err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to create chat room"})
 		return
 	}
 
@@ -73,7 +73,7 @@ func getConversationID(context *gin.Context) {
 	// Check if conversation exists in database
 	cID, err := models.GetConversationIDByUserIDs(min(uID, frID), max(uID, frID))
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": "Something went wrong"})
+		context.JSON(http.StatusNotFound, gin.H{"message": "Failed to get conversation ID"})
 		return
 	}
 
@@ -116,7 +116,7 @@ func getConversation(context *gin.Context) {
 	// Get conversations ID from url param and user's id
 	cID, err := strconv.ParseInt(context.Param("cID"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid conversation ID"})
 		return
 	}
 	uID := context.GetInt64("uID")
@@ -135,21 +135,21 @@ func getConversation(context *gin.Context) {
 		return
 	}
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch conversation"})
 		return
 	}
 
 	// Get cursor value from url query
 	cursor, err := strconv.ParseInt(context.DefaultQuery("cursor", "0"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid cursor"})
 		return
 	}
 
 	// Get all messages data
 	msgs, err := models.GetMessagesByConversationID(c.ID, cursor)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch messages"})
 		return
 	}
 
@@ -170,7 +170,7 @@ func updateReadRecordOnConversation(context *gin.Context) {
 	// Get conversation ID and user ID
 	cID, err := strconv.ParseInt(context.Param("cID"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid conversation ID"})
 		return
 	}
 	uID := context.GetInt64("uID")
@@ -178,18 +178,14 @@ func updateReadRecordOnConversation(context *gin.Context) {
 	// Get user's position in conversation (user a or user b)
 	uPos, err := models.CheckUserPositionInConversation(cID, uID)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
-	} else if uPos == "" {
-		// If not a member, return an error
-		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid user"})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to check conversation membership"})
 		return
 	}
 
 	// Updated read messages data
 	err = models.SetReadMessage(cID, uID, uPos)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update read status"})
 		return
 	}
 

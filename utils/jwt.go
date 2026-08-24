@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 var secretkey = sync.OnceValue(func() []byte {

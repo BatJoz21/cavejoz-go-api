@@ -243,8 +243,9 @@ func IsFriend(uID, targetUID int64) bool {
 		ELSE f.requester_id
 	END
 	WHERE
-		status = 'accepted' AND
-		(f.requester_id = ? AND f.addressee_id = ?) OR (f.requester_id = ? AND f.addressee_id = ?)`
+		status = 'accepted' AND (
+			(f.requester_id = ? AND f.addressee_id = ?) OR (f.requester_id = ? AND f.addressee_id = ?)
+	)`
 	row := databases.DB.QueryRow(query, uID, uID, targetUID, targetUID, uID)
 
 	var profile FriendProfileDTO

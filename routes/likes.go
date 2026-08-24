@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -14,14 +15,14 @@ func toggleLike(context *gin.Context) {
 	var err error
 	like.PostID, err = strconv.ParseInt(context.Param("postID"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid postID"})
 		return
 	}
 	like.UserID = context.GetInt64("uID")
 
 	// Check if user is authorize to like the post
 	if !canViewPost(like.PostID, like.UserID) {
-		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorize access"})
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized access"})
 		return
 	}
 
@@ -34,7 +35,7 @@ func toggleLike(context *gin.Context) {
 		// Delete like data from database (unlike)
 		err = models.DeleteLike(id)
 		if err != nil {
-			context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to unlike the post"})
 			return
 		}
 		message = "Post unlike"
@@ -43,18 +44,18 @@ func toggleLike(context *gin.Context) {
 		// Save like data to database (like)
 		err = like.SaveLike()
 		if err != nil {
-			context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to like the post"})
 			return
 		}
 		message = "Post liked"
 
 		// Like notification
 		userID, err := models.GetPostOwnerID(like.PostID)
-		if err != nil {
-			context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-			return
+		if err == nil {
+			NotifyandPush(userID, like.UserID, like.PostID, "like")
+		} else {
+			log.Println("Post liked, but failed to create notification")
 		}
-		NotifyandPush(userID, like.UserID, like.PostID, "like")
 	}
 
 	// Get current total like on the post
@@ -67,7 +68,13 @@ func getTotalLike(context *gin.Context) {
 	// Get post ID
 	id, err := strconv.ParseInt(context.Param("postID"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid postID"})
+		return
+	}
+
+	// Check post availability
+	if !canViewPost(id, context.GetInt64("uID")) {
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized access"})
 		return
 	}
 

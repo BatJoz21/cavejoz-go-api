@@ -227,8 +227,11 @@ func GetPostVisibility(postID int64) (*string, int64, error) {
 	return &visibility, postUserID, nil
 }
 
-func GetTotalPostByUID(uID int64) (int, error) {
+func GetTotalPostByUID(uID int64, isFriend bool) (int, error) {
 	query := `SELECT COUNT(*) FROM posts WHERE user_id = ?`
+	if !isFriend {
+		query += ` AND visibility = 'public'`
+	}
 	row := databases.DB.QueryRow(query, uID)
 
 	var total int

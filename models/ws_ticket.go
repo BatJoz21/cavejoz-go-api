@@ -3,6 +3,7 @@ package models
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"log"
 	"time"
 
 	"github.com/BatJoz21/cavejoz-go-api/databases"
@@ -63,4 +64,35 @@ func ConsumeWSTicket(ticket string) (int64, bool) {
 
 	rows, _ := result.RowsAffected()
 	return uID, rows == 1
+}
+
+// DeleteExpiredWSTickets reaps tickets whose expiry has passed. Consumed tickets
+// are already deleted by ConsumeWSTicket; this clears the ones nobody ever used.
+func DeleteExpiredWSTickets() (int64, error) {
+	result, err := databases.DB.Exec(`DELETE FROM ws_tickets WHERE expire_at < ?`, time.Now())
+	if err != nil {
+		return 0, err
+	}
+
+	return result.RowsAffected()
+}
+
+// StartWSTicketSweeper sweeps expired tickets once, then on every tick for the
+// lifetime of the process.
+func StartWSTicketSweeper(every time.Duration) {
+	go func() {
+		ticker := time.NewTicker(every)
+		defer ticker.Stop()
+
+		for {
+			deleted, err := DeleteExpiredWSTickets()
+			if err != nil {
+				log.Printf("ws ticket sweep failed: %v", err)
+			} else if deleted > 0 {
+				log.Printf("ws ticket sweep removed %d expired tickets", deleted)
+			}
+
+			<-ticker.C
+		}
+	}()
 }

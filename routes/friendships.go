@@ -14,10 +14,14 @@ func addFriend(context *gin.Context) {
 	var dto models.AddFriendDTO
 	err := context.ShouldBindBodyWithJSON(&dto)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
 		return
 	}
 	addresseeID, err := strconv.ParseInt(dto.AddresseeID, 10, 64)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid addresseeID"})
+		return
+	}
 
 	// Create Friendship struct
 	friendship := models.Friendship{
@@ -36,7 +40,7 @@ func addFriend(context *gin.Context) {
 	// Insert new friendship data to database
 	err = friendship.SaveAddFriendData()
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to send friend request"})
 		return
 	}
 
@@ -51,10 +55,14 @@ func blockAUser(context *gin.Context) {
 	var dto models.AddFriendDTO
 	err := context.ShouldBindBodyWithJSON(&dto)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
 		return
 	}
 	addresseeID, err := strconv.ParseInt(dto.AddresseeID, 10, 64)
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid addresseeID"})
+		return
+	}
 
 	// Create Friendship struct
 	friendship := models.Friendship{
@@ -70,7 +78,7 @@ func blockAUser(context *gin.Context) {
 		// Insert new friendship data to database
 		err = friendship.SaveAddFriendData()
 		if err != nil {
-			context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to block user"})
 			return
 		}
 	} else {
@@ -81,25 +89,25 @@ func blockAUser(context *gin.Context) {
 	// Get friendship members
 	idA, idB, err := models.GetFriendshipMembers(friendship.ID)
 	if err != nil {
-		context.JSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		context.JSON(http.StatusNotFound, gin.H{"message": "Failed to fetch friendship data"})
 		return
 	}
 
 	// Delete conversation if exists
 	err = models.DeleteConversationByMemberIDs(min(idA, idB), max(idA, idB))
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete conversation"})
 		return
 	}
 
 	// Update stored friendship status to blocked at the database
 	err = models.UpdateFriendshipStatusToBlocked(friendship.ID)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to block user"})
 		return
 	}
 
-	context.JSON(http.StatusOK, gin.H{"message": "User has been block"})
+	context.JSON(http.StatusOK, gin.H{"message": "User has been blocked"})
 }
 
 func getPendingFriendList(context *gin.Context) {
@@ -112,7 +120,7 @@ func getPendingFriendList(context *gin.Context) {
 	// Get pending status data from database
 	pendings, err := models.GetPendingFriends(uID, offset)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch pending friend requests"})
 		return
 	}
 
@@ -126,21 +134,21 @@ func acceptFriendRequest(context *gin.Context) {
 	// Get friendship data ID
 	id, err := strconv.ParseInt(context.Param("frId"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid friendship ID"})
 		return
 	}
 
 	// Update stored friendship status to accepted at the database
 	err = models.UpdateFriendshipStatusToAccepted(id, context.GetInt64("uID"))
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to accept friend"})
 		return
 	}
 
 	// Sent notification to the requester
 	reqID, err := models.GetRequesterID(id)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Friend request accepted, but failed to create notification"})
 		return
 	}
 	NotifyandPush(reqID, context.GetInt64("uID"), id, "friend_accept")
@@ -161,14 +169,14 @@ func getFriendsList(context *gin.Context) {
 	// Get friends list
 	friends, err := models.GetFriendshipList(uID, "accepted", offset)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch friends list"})
 		return
 	}
 
 	// Get total friends
 	total, err := models.GetTotalFriendshipDataByUID(uID, "accepted")
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch total friends"})
 		return
 	}
 
@@ -185,14 +193,14 @@ func getBlockedList(context *gin.Context) {
 	// Get blocked users list
 	blocked, err := models.GetFriendshipList(uID, "blocked", offset)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch blocked users list"})
 		return
 	}
 
 	// Get total blocked
 	total, err := models.GetTotalFriendshipDataByUID(uID, "blocked")
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch total blocked users"})
 		return
 	}
 
@@ -203,14 +211,14 @@ func getUserTotalFriend(context *gin.Context) {
 	// Get user ID from parameter
 	uID, err := strconv.ParseInt(context.Param("uID"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid user ID"})
 		return
 	}
 
 	// Get total friends
 	total, err := models.GetTotalFriendshipDataByUID(uID, "accepted")
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch total friends"})
 		return
 	}
 
@@ -221,7 +229,7 @@ func getFriendshipStatus(context *gin.Context) {
 	// Get user ID from parameter
 	targetUID, err := strconv.ParseInt(context.Param("targetUID"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid target user ID"})
 		return
 	}
 
@@ -238,28 +246,28 @@ func deleteOrRejectFriendship(context *gin.Context) {
 	// Get friendship data ID
 	id, err := strconv.ParseInt(context.Param("frId"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid friendship ID"})
 		return
 	}
 
 	// Get friendship members
 	idA, idB, err := models.GetFriendshipMembers(id)
 	if err != nil {
-		context.JSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		context.JSON(http.StatusNotFound, gin.H{"message": "Failed to fetch friendship data"})
 		return
 	}
 
 	// Delete conversation if exists
 	err = models.DeleteConversationByMemberIDs(min(idA, idB), max(idA, idB))
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete conversation"})
 		return
 	}
 
 	// Remove friendship data from database
 	err = models.DeleteFriendship(id, context.GetInt64("uID"))
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete friendship"})
 		return
 	}
 

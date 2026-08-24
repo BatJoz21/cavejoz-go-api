@@ -22,12 +22,12 @@ func sendMessage(context *gin.Context) {
 	// Check conversation membership
 	senderID := context.GetInt64("uID")
 	if !models.IsConversationMember(cID, senderID) {
-		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorize access"})
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized access"})
 		return
 	}
 	_, err = models.GetOtherConversationParticipant(cID, senderID)
 	if err != nil {
-		context.JSON(http.StatusNotFound, gin.H{"message": err.Error()})
+		context.JSON(http.StatusNotFound, gin.H{"message": "Conversation participant not found"})
 		return
 	}
 
@@ -62,20 +62,20 @@ func getConversationMessage(context *gin.Context) {
 	// Get conversation id from url parameter
 	cID, err := strconv.ParseInt(context.Param("cID"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid conversation ID"})
 		return
 	}
 
 	// Check conversation ownership
 	if !models.IsConversationMember(cID, context.GetInt64("uID")) {
-		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorize access"})
+		context.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized access"})
 		return
 	}
 
 	// Get cursor value from url query
 	cursor, err := strconv.ParseInt(context.DefaultQuery("cursor", "0"), 10, 64)
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid cursor"})
 		return
 	}
 
@@ -86,7 +86,7 @@ func getConversationMessage(context *gin.Context) {
 			context.JSON(http.StatusOK, msgs)
 			return
 		} else {
-			context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+			context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch messages"})
 			return
 		}
 	}

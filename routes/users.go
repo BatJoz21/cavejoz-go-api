@@ -13,6 +13,10 @@ import (
 func getMyUserProfile(context *gin.Context) {
 	// Get profile data using getUserDataForOperation function
 	user := getMyUserData(context)
+	if user == nil {
+		context.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
+		return
+	}
 
 	context.JSON(http.StatusOK, user)
 }
@@ -24,7 +28,7 @@ func getUserProfile(context *gin.Context) {
 	// Get profile data from database
 	user, err := models.GetUserDataByUsername(username)
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch user profile"})
 		return
 	}
 
@@ -57,6 +61,10 @@ func getUserAvatar(context *gin.Context) {
 func updateUserProfile(context *gin.Context) {
 	// Get profile data using getUserDataForOperation function
 	user := getMyUserData(context)
+	if user == nil {
+		context.JSON(http.StatusNotFound, gin.H{"message": "User not found"})
+		return
+	}
 
 	// Get user's input
 	if context.PostForm("username") != "" {
@@ -68,7 +76,7 @@ func updateUserProfile(context *gin.Context) {
 
 		user.Username = username
 	}
-	if context.PostForm("full_name") != "" {
+	if utils.IsFullNameValid(context.PostForm("full_name")) {
 		user.FullName = context.PostForm("full_name")
 	}
 	userBio := context.PostForm("bio")
@@ -80,7 +88,7 @@ func updateUserProfile(context *gin.Context) {
 		// Save new avatar
 		avatar, err := utils.SaveAvatar(file, context)
 		if err != nil {
-			context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+			context.JSON(http.StatusBadRequest, gin.H{"message": "Failed to save avatar"})
 			return
 		}
 
@@ -88,7 +96,7 @@ func updateUserProfile(context *gin.Context) {
 		if user.AvatarUrl != nil {
 			err = utils.RemoveImage(user.AvatarUrl, "profile")
 			if err != nil {
-				context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+				context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to remove old avatar"})
 				return
 			}
 		}
@@ -100,7 +108,7 @@ func updateUserProfile(context *gin.Context) {
 	// Update user data in database
 	err = user.Update()
 	if err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to update user profile"})
 		return
 	}
 
@@ -114,7 +122,7 @@ func getMyUserData(context *gin.Context) *models.User {
 	// Get profile data from database
 	user, err := models.GetUserDataForOps(uID)
 	if err != nil {
-		context.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Failed to fetch user data"})
 		return nil
 	}
 

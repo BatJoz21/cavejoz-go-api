@@ -7,6 +7,7 @@ import (
 
 	"github.com/BatJoz21/cavejoz-go-api/databases"
 	"github.com/BatJoz21/cavejoz-go-api/hub"
+	"github.com/BatJoz21/cavejoz-go-api/models"
 	"github.com/BatJoz21/cavejoz-go-api/routes"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -18,6 +19,8 @@ func main() {
 	}
 
 	databases.InitDB()
+
+	models.StartWSTicketSweeper(10 * time.Minute)
 
 	server := gin.Default()
 
