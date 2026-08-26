@@ -99,8 +99,8 @@ func GetCommentByID(commentID int64) (*Comment, error) {
 
 func DeleteCommentByID(cID, uID int64) (int64, error) {
 	query := `DELETE c FROM comments c
-	JOIN posts p ON c.user_id = p.user_id
-	WHERE c.id = ? AND (c.user_id = ? AND p.user_id = ?)`
+	JOIN posts p ON p.id = c.post_id
+	WHERE c.id = ? AND (c.user_id = ? OR p.user_id = ?)`
 
 	result, err := databases.DB.Exec(query, cID, uID, uID)
 	if err != nil {
@@ -120,10 +120,10 @@ func DeleteCommentByID(cID, uID int64) (int64, error) {
 
 func DeleteAllCommentByPostID(postID, uID int64) error {
 	query := `DELETE c FROM comments c
-	JOIN posts p ON c.user_id = p.user_id
-	WHERE c.post_id = ? AND (c.user_id = ? OR p.user_id = ?)`
+	JOIN posts p ON p.id = c.post_id
+	WHERE c.post_id = ? AND p.user_id = ?`
 
-	_, err := databases.DB.Exec(query, postID, uID, uID)
+	_, err := databases.DB.Exec(query, postID, uID)
 	if err != nil {
 		return err
 	}
