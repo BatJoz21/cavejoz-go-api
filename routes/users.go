@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -33,6 +35,27 @@ func getUserProfile(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, user)
+}
+
+func getUserAvatarFileName(context *gin.Context) {
+	uID := context.GetInt64("uID")
+
+	filename, err := models.GetStoredAvatarPath(uID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			context.JSON(http.StatusNotFound, gin.H{"message": "Not found"})
+			return
+		} else {
+			context.JSON(http.StatusInternalServerError, gin.H{"message": "An error has occured when fetching the data"})
+			return
+		}
+	}
+
+	if filename == nil {
+		context.JSON(http.StatusOK, gin.H{"avatar_url": "default"})
+	} else {
+		context.JSON(http.StatusOK, gin.H{"avatar_url": filename})
+	}
 }
 
 func getUserAvatar(context *gin.Context) {
