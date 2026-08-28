@@ -79,6 +79,7 @@ func RegisteredRoutes(server *gin.Engine, h *hub.Hub) {
 	authGroup.POST("/dm/:cID/message", sendMessage)
 	authGroup.PUT("/dm/:cID/read", updateReadRecordOnConversation)
 
+	authGroup.GET("/user-avatar", getUserAvatarFileName)
 	authGroup.GET("/users/posts/:uID", getAllPostsOfAUser)
 	authGroup.GET("/users/posts/:uID/total", getTotalUserPost)
 }
