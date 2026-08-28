@@ -14,6 +14,10 @@ func RegisteredRoutes(server *gin.Engine, h *hub.Hub) {
 		panic("hub not initialized")
 	}
 
+	server.GET("/health", func(context *gin.Context) {
+		context.JSON(200, gin.H{"status": "ok"})
+	})
+
 	// The unauthenticated endpoints each get their own rate-limit budget.
 	server.POST("/register",
 		middlewares.RateLimitIP(middlewares.RegisterMax, middlewares.RegisterWindow),

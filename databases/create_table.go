@@ -199,9 +199,7 @@ func createTables() {
 			ON DELETE CASCADE
 			ON UPDATE CASCADE,
 
-		CONSTRAINT cn_unq_member UNIQUE (user_a_id, user_b_id),
-
-		CONSTRAINT cn_chk_order CHECK (user_a_id < user_b_id)
+		CONSTRAINT cn_unq_member UNIQUE (user_a_id, user_b_id)
 	)`
 	_, err = DB.Exec(conversationsTable)
 	if err != nil {

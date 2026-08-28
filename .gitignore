@@ -33,3 +33,6 @@ go.work.sum
 
 uploads/*
 !uploads/.gitkeep
+
+.dockerignore
+Dockerfile
